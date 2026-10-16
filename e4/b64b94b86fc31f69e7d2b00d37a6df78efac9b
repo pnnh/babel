@@ -1,0 +1,270 @@
+CMakePresets.json
+  h_6465a203f88bd5 46
+  h_6465a203f88bd5 1-45,47-80
+babel/main.cpp
+  h_6465a203f88bd5 1-25,34-36
+  s_4410af31721c03::t_137ffbaa66b5e1 26-33
+vcpkg.json
+  h_6465a203f88bd5 1-16
+babel/content/Main.qml
+  h_6465a203f88bd5 1-17
+.gitignore
+  h_6465a203f88bd5 1-76
+babel/CMakeLists.txt
+  h_6465a203f88bd5 1-82
+CMakeLists.txt
+  h_6465a203f88bd5 1-53
+.agents/skills/speckit-analyze/SKILL.md
+  h_6465a203f88bd5 1-259
+.agents/skills/speckit-checklist/SKILL.md
+  h_6465a203f88bd5 1-373
+.agents/skills/speckit-clarify/SKILL.md
+  h_6465a203f88bd5 1-291
+.agents/skills/speckit-constitution/SKILL.md
+  h_6465a203f88bd5 1-168
+.agents/skills/speckit-converge/SKILL.md
+  h_6465a203f88bd5 1-277
+.agents/skills/speckit-implement/SKILL.md
+  h_6465a203f88bd5 1-223
+.agents/skills/speckit-plan/SKILL.md
+  h_6465a203f88bd5 1-166
+.agents/skills/speckit-specify/SKILL.md
+  h_6465a203f88bd5 1-345
+.agents/skills/speckit-tasks/SKILL.md
+  h_6465a203f88bd5 1-214
+.agents/skills/speckit-taskstoissues/SKILL.md
+  h_6465a203f88bd5 1-109
+.clang-format
+  h_6465a203f88bd5 1-273
+.clang-tidy
+  h_6465a203f88bd5 1-122
+.claude/.gitignore
+  h_6465a203f88bd5 1
+.claude/settings.json
+  h_6465a203f88bd5 1-11
+.claude/skills/speckit-analyze/SKILL.md
+  h_6465a203f88bd5 1-262
+.claude/skills/speckit-bug-assess/SKILL.md
+  h_6465a203f88bd5 1-179
+.claude/skills/speckit-bug-fix/SKILL.md
+  h_6465a203f88bd5 1-117
+.claude/skills/speckit-bug-test/SKILL.md
+  h_6465a203f88bd5 1-123
+.claude/skills/speckit-checklist/SKILL.md
+  h_6465a203f88bd5 1-376
+.claude/skills/speckit-clarify/SKILL.md
+  h_6465a203f88bd5 1-288
+.claude/skills/speckit-constitution/SKILL.md
+  h_6465a203f88bd5 1-159
+.claude/skills/speckit-converge/SKILL.md
+  h_6465a203f88bd5 1-279
+.claude/skills/speckit-implement/SKILL.md
+  h_6465a203f88bd5 1-226
+.claude/skills/speckit-plan/SKILL.md
+  h_6465a203f88bd5 1-173
+.claude/skills/speckit-specify/SKILL.md
+  h_6465a203f88bd5 1-348
+.claude/skills/speckit-tasks/SKILL.md
+  h_6465a203f88bd5 1-217
+.claude/skills/speckit-taskstoissues/SKILL.md
+  h_6465a203f88bd5 1-112
+.gitattributes
+  h_6465a203f88bd5 1-15
+.github/agents/speckit.agent-context.update.agent.md
+  h_6465a203f88bd5 1-30
+.github/agents/speckit.analyze.agent.md
+  h_6465a203f88bd5 1-251
+.github/agents/speckit.bug.assess.agent.md
+  h_6465a203f88bd5 1-177
+.github/agents/speckit.bug.fix.agent.md
+  h_6465a203f88bd5 1-115
+.github/agents/speckit.bug.test.agent.md
+  h_6465a203f88bd5 1-121
+.github/agents/speckit.checklist.agent.md
+  h_6465a203f88bd5 1-365
+.github/agents/speckit.clarify.agent.md
+  h_6465a203f88bd5 1-281
+.github/agents/speckit.constitution.agent.md
+  h_6465a203f88bd5 1-152
+.github/agents/speckit.converge.agent.md
+  h_6465a203f88bd5 1-269
+.github/agents/speckit.implement.agent.md
+  h_6465a203f88bd5 1-215
+.github/agents/speckit.plan.agent.md
+  h_6465a203f88bd5 1-170
+.github/agents/speckit.specify.agent.md
+  h_6465a203f88bd5 1-345
+.github/agents/speckit.tasks.agent.md
+  h_6465a203f88bd5 1-215
+.github/agents/speckit.taskstoissues.agent.md
+  h_6465a203f88bd5 1-102
+.github/prompts/speckit.agent-context.update.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.analyze.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.bug.assess.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.bug.fix.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.bug.test.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.checklist.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.clarify.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.constitution.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.converge.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.implement.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.plan.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.specify.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.tasks.prompt.md
+  h_6465a203f88bd5 1-3
+.github/prompts/speckit.taskstoissues.prompt.md
+  h_6465a203f88bd5 1-3
+.specify/bugs/address-bar-toolbar-layout/assessment.md
+  h_6465a203f88bd5 1-88
+.specify/bugs/address-bar-toolbar-layout/fix.md
+  h_6465a203f88bd5 1-95
+.specify/bugs/address-bar-toolbar-layout/test.md
+  h_6465a203f88bd5 1-43
+.specify/bugs/ime-chinese-caret-corruption/assessment.md
+  h_6465a203f88bd5 1-138
+.specify/bugs/ime-chinese-caret-corruption/fix.md
+  h_6465a203f88bd5 1-67
+.specify/bugs/ime-chinese-caret-corruption/test.md
+  h_6465a203f88bd5 1-63
+.specify/extensions.yml
+  h_6465a203f88bd5 1-24
+.specify/extensions/.registry
+  h_6465a203f88bd5 1-40
+.specify/extensions/agent-context/README.md
+  h_6465a203f88bd5 1-66
+.specify/extensions/agent-context/agent-context-config.yml
+  h_6465a203f88bd5 1-5
+.specify/extensions/agent-context/commands/speckit.agent-context.update.md
+  h_6465a203f88bd5 1-27
+.specify/extensions/agent-context/extension.yml
+  h_6465a203f88bd5 1-34
+.specify/extensions/agent-context/scripts/bash/update-agent-context.sh
+  h_6465a203f88bd5 1-337
+.specify/extensions/agent-context/scripts/powershell/update-agent-context.ps1
+  h_6465a203f88bd5 1-417
+.specify/extensions/bug/README.md
+  h_6465a203f88bd5 1-80
+.specify/extensions/bug/commands/speckit.bug.assess.md
+  h_6465a203f88bd5 1-173
+.specify/extensions/bug/commands/speckit.bug.fix.md
+  h_6465a203f88bd5 1-112
+.specify/extensions/bug/commands/speckit.bug.test.md
+  h_6465a203f88bd5 1-117
+.specify/extensions/bug/extension.yml
+  h_6465a203f88bd5 1-31
+.specify/feature.json
+  h_6465a203f88bd5 1-3
+.specify/init-options.json
+  h_6465a203f88bd5 1-9
+.specify/integration.json
+  h_6465a203f88bd5 1-25
+.specify/integrations/claude.manifest.json
+  h_6465a203f88bd5 1-17
+.specify/integrations/codex.manifest.json
+  h_6465a203f88bd5 1-17
+.specify/integrations/copilot.manifest.json
+  h_6465a203f88bd5 1-28
+.specify/integrations/kilocode.manifest.json
+  h_6465a203f88bd5 1-17
+.specify/integrations/speckit.manifest.json
+  h_6465a203f88bd5 1-27
+.specify/memory/constitution.md
+  h_6465a203f88bd5 1-157
+.specify/scripts/bash/check-prerequisites.sh
+  h_6465a203f88bd5 1-195
+.specify/scripts/bash/common.sh
+  h_6465a203f88bd5 1-704
+.specify/scripts/bash/create-new-feature.sh
+  h_6465a203f88bd5 1-392
+.specify/scripts/bash/setup-plan.sh
+  h_6465a203f88bd5 1-83
+.specify/scripts/bash/setup-tasks.sh
+  h_6465a203f88bd5 1-91
+.specify/scripts/powershell/check-prerequisites.ps1
+  h_6465a203f88bd5 1-147
+.specify/scripts/powershell/common.ps1
+  h_6465a203f88bd5 1-558
+.specify/scripts/powershell/create-new-feature.ps1
+  h_6465a203f88bd5 1-240
+.specify/scripts/powershell/setup-plan.ps1
+  h_6465a203f88bd5 1-64
+.specify/scripts/powershell/setup-tasks.ps1
+  h_6465a203f88bd5 1-69
+.specify/scripts/python/check_prerequisites.py
+  h_6465a203f88bd5 1-207
+.specify/scripts/python/common.py
+  h_6465a203f88bd5 1-293
+.specify/scripts/python/create_new_feature.py
+  h_6465a203f88bd5 1-422
+.specify/scripts/python/setup_plan.py
+  h_6465a203f88bd5 1-86
+.specify/scripts/python/setup_tasks.py
+  h_6465a203f88bd5 1-145
+.specify/templates/checklist-template.md
+  h_6465a203f88bd5 1-42
+.specify/templates/constitution-template.md
+  h_6465a203f88bd5 1-50
+.specify/templates/plan-template.md
+  h_6465a203f88bd5 1-119
+.specify/templates/spec-template.md
+  h_6465a203f88bd5 1-133
+.specify/templates/tasks-template.md
+  h_6465a203f88bd5 1-254
+.specify/workflows/speckit/workflow.yml
+  h_6465a203f88bd5 1-77
+.specify/workflows/workflow-registry.json
+  h_6465a203f88bd5 1-13
+AGENTS.md
+  h_6465a203f88bd5 1-61
+CLAUDE.md
+  h_6465a203f88bd5 1-4
+LICENSE
+  h_6465a203f88bd5 1-661
+babel.code-workspace
+  h_6465a203f88bd5 1-65
+docs/IME.md
+  h_6465a203f88bd5 1-179
+vcpkg-configuration.json
+  h_6465a203f88bd5 1-20
+vcpkg/ports/llama-cpp/cmake-config.diff
+  h_6465a203f88bd5 1-28
+vcpkg/ports/llama-cpp/pkgconfig.diff
+  h_6465a203f88bd5 1-12
+vcpkg/ports/llama-cpp/portfile.cmake
+  h_6465a203f88bd5 1-75
+vcpkg/ports/llama-cpp/vcpkg.json
+  h_6465a203f88bd5 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e4b64b94b86fc31f69e7d2b00d37a6df78efac9b",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4410af31721c03": {
+      "agent_id": {
+        "tool": "github-copilot-jetbrains",
+        "id": "1792144317557",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
