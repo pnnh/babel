@@ -1,0 +1,65 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"git.openRepositoryInParentFolders": "never",
+		"files.exclude": {
+			"**/.git": true
+		},
+		"chat.tools.terminal.autoApprove": {
+			"rtk": true,
+			"SRCROOT": true,
+			"xcodebuild": true,
+			"otool": true,
+			"plutil": true,
+			"cmake": true,
+			"nm": true,
+			"mkdir": true,
+			"tar": true,
+			"where.exe": true,
+			"Test-Path": true,
+			"ForEach-Object": true,
+			"Get-Item": true
+		},
+		"search.useIgnoreFiles": false,
+		"search.exclude": {
+			"build/macos/vcpkg_installed/**": true,
+			"build/macos/CMakeFiles/**": true,
+			"build/macos/build/**": true,
+			"build/macos/meta_types/**": true,
+			"build/macos/MTKepler_autogen/**": true,
+			"**/node_modules/**": true,
+			"**/target/debug/**": true,
+			"**/target/release/**": true,
+			"**/.dolt/**": true,
+			"**/_build/**": true,
+			"**/dist/**": true,
+			"**/build/**": true,
+			"**/vcpkg_installed/**": true,
+			"**/CMakeFiles/**": true,
+			"packages/**": true,
+			"**/obj/**": true,
+			"**/bin/**": true,
+			"**/lib/**": true,
+			".pnpm-store/**": true,
+			"**/Generated/**": true,
+			"**/gen/**": true,
+			"**/Generated Files/**": true,
+			".entire/**": true,
+			".agents/**": true,
+			".claude/**": true,
+			".qoder/**": true,
+			".github/**": true,
+			".kilo/**": true,
+			".vscode/**": true,
+			".qtcreator/**": true,
+			".specify/**": true,
+			"**/.idea/**": true,
+			"**/packages/**": true,
+			"specs/**": true
+		}
+	}
+}

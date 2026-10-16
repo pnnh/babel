@@ -1,0 +1,16 @@
+{
+  "name": "babel",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "spdlog"
+    }, 
+    {
+      "name": "boost-filesystem"
+    },
+    {
+      "name": "sqlite3"
+    }
+  ],
+  "overrides": []
+}

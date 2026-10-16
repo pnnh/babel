@@ -1,0 +1,76 @@
+# JetBrains
+.idea/
+.cache/
+
+# Visual Studio
+*.user
+.vs/
+*.suo
+obj/
+bin/
+/packages/
+_build/
+x64/
+*.pdb
+
+# CMake
+build/
+cmake-build-*
+vcpkg_installed/
+/vcpkg-manifest-install.log
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+
+# xcode macos and ios
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.ipa
+*.dSYM.zip
+*.dSYM
+.build/
+/Packages/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+Pods/
+.swiftpm/
+
+# Nodejs
+node_modules/
+
+# Rust
+/target/
+
+# visual studio
+Generated Files/
+out/
+ARM64/
+
+output/
+docker/assets
+.vscode/
+
+# Nodejs
+.pnpm-store/
+
+# Qt
+.qtcreator/
+
+# CppWinRTProjection generated packaging output
+windows/CppWinRTProjection/nuget/
+
+# Logs
+*.log
+
+# AI Agent计划文件目录
+/plan/

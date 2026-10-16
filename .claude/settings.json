@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun --version)",
+      "Bash(xcodebuild -project ./Kepler.xcodeproj -scheme Kepler -destination 'platform=macOS' build)",
+      "Bash(rtk grep *)",
+      "Bash(rtk find *)",
+      "Bash(rtk ls *)"
+    ]
+  }
+}

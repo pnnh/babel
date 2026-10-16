@@ -1,0 +1,15 @@
+# 图片格式（不使用 LFS）
+*.jpg -text
+*.png -text
+*.gif -text
+*.bmp -text
+*.tiff -text
+*.tif -text
+*.webp -text
+*.awebp -text
+*.jpeg -text
+*.svg -text
+# 电子书或文档格式（不使用 LFS）
+*.pdf -text
+*.epub -text
+*.mobi -text
