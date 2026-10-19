@@ -1,0 +1,267 @@
+babel/src/session/SessionController.cpp
+  s_24d7312421289e::t_3f28c15cd96ea5 375-381,385-400,406-411
+  s_24d7312421289e::t_aa92483bd674c3 446-449
+  s_24d7312421289e::t_6e77079f2fe374 5
+  s_24d7312421289e::t_0e867a3afd6e01 88-89,92-95
+  s_24d7312421289e::t_2b5e7e46668b78 313
+  s_24d7312421289e::t_bb0653c2976803 9,12-13,16-17,19
+  s_24d7312421289e::t_901796bcd9207e 134
+  s_24d7312421289e::t_a891544bcfd024 42-84,86
+  s_24d7312421289e::t_19c3a2b5b3834d 7,11,25
+  s_24d7312421289e::t_66b27d8f84b4cf 155-312,314-324
+  s_24d7312421289e::t_99ae804cc3eebc 325
+specs/002-lattice-dict-model-switch/data-model.md
+  s_d5ca39eec975fc::t_49ec97e34cb667 88
+  s_86ac9016938e3b::t_b13d9219e066e7 1-8,10-22,24-33,35-58,60-65,67-71,73-87,89-93,96-116,118-143
+  s_d5ca39eec975fc::t_85f8fb87673c78 117
+  s_d5ca39eec975fc::t_a7dd14938f892a 23
+  s_d5ca39eec975fc::t_86928d943893ce 9
+  s_d5ca39eec975fc::t_52fbcca254241e 34
+  s_d5ca39eec975fc::t_00de66e309677e 94-95
+  s_d5ca39eec975fc::t_0c4ef71824c091 59
+  s_d5ca39eec975fc::t_33c86226a9ee31 66
+  s_d5ca39eec975fc::t_3b836446f9e4fb 72
+tests/fastpath/PinyinLatticeTest.cpp
+  s_24d7312421289e::t_e32dff26074c9e 3,5
+  s_24d7312421289e::t_04c644292066e5 78-81
+  s_24d7312421289e::t_1ee0fcd31a8037 1-2,4,6-77,82-135
+tests/fastpath/FastCorrectorRealDictionaryPerformanceTest.cpp
+  s_6b7ba739c15562::t_d487281748d3ae 1-76
+babel/src/fastpath/DictionaryPaths.cpp
+  s_24d7312421289e::t_9a920da55bd83a 1-13
+babel/content/FloatingWindow.qml
+  s_24d7312421289e::t_3e90b97b88e01c 30,35-61,157-162
+  s_24d7312421289e::t_c5965cda3055b2 163
+babel/src/fastpath/FastCorrector.cpp
+  s_24d7312421289e::t_b5f069db644510 7,16,18-24,29-33,67-69,73-77,93-97,101,109-119,121-128,130-138,140-153,155,158-166,169,188-217,220-223,227,229-230,232,235
+  s_24d7312421289e::t_34727cab673972 70-72,78-86,102-107
+  s_24d7312421289e::t_6e9676df0f9428 87-92,98-100,108
+  s_24d7312421289e::t_8aad6507611126 170-185
+  s_24d7312421289e::t_10c195f3d9c042 34-41
+  s_24d7312421289e::t_dabbe87b2ab8a9 236
+tests/slowpath/LlmEngineGenerateTest.cpp
+  s_24d7312421289e::t_01a5ce7484f2ad 63-85
+babel/src/session/DraftTypes.h
+  s_24d7312421289e::t_8b514ddeebd9df 6-7,20-24,28
+babel/src/slowpath/ModelCatalog.h
+  s_24d7312421289e::t_2fb9a9d61aeab2 1-60
+babel/src/slowpath/ModelCatalog.cpp
+  s_24d7312421289e::t_aa388072cfd3bf 1-131
+babel/src/fastpath/PinyinTrie.cpp
+  s_24d7312421289e::t_80d442ac60355b 49-50,63-64,66,69-70,74-75
+babel/src/fastpath/RimeDictLoader.cpp
+  s_24d7312421289e::t_fa14f335d64c7f 1-237
+specs/002-lattice-dict-model-switch/spec.md
+  s_2dd6c3957121d8::t_c95fd5597d60c4 144
+  s_2dd6c3957121d8::t_38e9d86630fba2 128
+  s_2dd6c3957121d8::t_3a2c85e222027f 118
+  s_7d95ac773a7cfa::t_c941331544747b 2,4,6-8,10-12,22,37,41,43,45,47,49,52-53,58-60,62,64,66,68-70,74-76,78,80,82,84-86,91-95,102-105,108,114,116,120,131-132,136-140,146-148
+  s_2dd6c3957121d8::t_61d20edb862852 112
+  s_7d95ac773a7cfa::t_7d7ef378dba301 1,3,5,9,13-21,36,38-40,42,44,46,48,50-51,54-57,61,63,65,67,71-73,77,79,81,83,87-88,90,96-100,106-107,110-111,113,115,117,121-125,129-130,133-135,142-143,145,149-160
+  s_2dd6c3957121d8::t_768555193a5c62 31
+  s_2dd6c3957121d8::t_4becfcded5d396 109
+  s_2dd6c3957121d8::t_a9a1eacd6e73e7 141
+  s_2dd6c3957121d8::t_0f862d849180f6 101
+  s_2dd6c3957121d8::t_9a6e8d064f9a4c 28
+  s_2dd6c3957121d8::t_3798c206c7195d 30
+  s_2dd6c3957121d8::t_572369b7453760 34
+  s_2dd6c3957121d8::t_be6d8be4b649b1 29
+  s_2dd6c3957121d8::t_70c500c90963ff 32
+  s_2dd6c3957121d8::t_08fc76a9a70874 89
+  s_2dd6c3957121d8::t_603e24307e5ffe 127
+  s_2dd6c3957121d8::t_005b272088043c 23-27,35
+  s_2dd6c3957121d8::t_193480f9871e50 119
+  s_2dd6c3957121d8::t_71a7f9df79fca6 126
+  s_2dd6c3957121d8::t_bfadde15750d81 33
+specs/002-lattice-dict-model-switch/contracts/llm-prompt-annotation-contract.md
+  s_d5ca39eec975fc::t_e18e1a9afbc742 47,49
+  s_86ac9016938e3b::t_344e2384fd5d06 1-46,48,50
+tests/fastpath/PinyinTrieTest.cpp
+  s_24d7312421289e::t_10ac9051631f0d 20-27,37,47,55,66-85
+tests/fastpath/RimeDictLoaderTest.cpp
+  s_24d7312421289e::t_9d2e0905d1ffaa 5
+  s_24d7312421289e::t_fe6bccfbd7ec82 1-4,6-213
+specs/002-lattice-dict-model-switch/tasks.md
+  s_24d7312421289e::t_145aee59418afc 39-40,52-56,72,76-79,97-100,104-111,129-130,134-140,150-151,156
+  s_6b7ba739c15562::t_12dab7350fb542 152-153
+  s_334ecd4282aeaf::t_d9e96331c26edc 1-38,41-51,57-71,73-75,80-96,101-103,112-128,131-133,141-149,157-252
+  s_6b7ba739c15562::t_5df619e60221eb 154-155
+babel/src/fastpath/PinyinTrie.h
+  s_24d7312421289e::t_4bc573dc5e15e2 22-24,26-28,37-38
+tests/slowpath/ModelCatalogTest.cpp
+  s_24d7312421289e::t_6411b022cf76da 1-136
+specs/002-lattice-dict-model-switch/plan.md
+  s_d5ca39eec975fc::t_f09ff4ba7ba0d8 28
+  s_86ac9016938e3b::t_6db41db98519b7 1-16,20-27,29-31,33-53,55,57,65,67-73,75,77,79-81,83,85,87,89,99,108-109,114,116-168,170-175,177-189,191-192
+  s_d5ca39eec975fc::t_e18969c3e0bff4 74,76,78,82,84,86,88,90-98,100-107,110-113,115
+  s_d5ca39eec975fc::t_ba4fa14401ac5e 54,56,58-64,66
+  s_86ac9016938e3b::t_d7772cee40fb38 190
+  s_d5ca39eec975fc::t_a9ffa4f3c686a3 32
+  s_d5ca39eec975fc::t_9b55fb77993168 17-19
+  s_d5ca39eec975fc::t_cf958f39284da6 169,176
+babel/content/dictionaries/NOTICE-rime-ice.txt
+  s_24d7312421289e::t_dd821354c01cf9 1-41
+babel/src/fastpath/DictionarySchema.cpp
+  s_24d7312421289e::t_f3a18eca7221da 36-42,56-58
+babel/content/dictionaries/LICENSE-rime-ice.txt
+  s_24d7312421289e::t_44ff083032f3bd 1-674
+.specify/feature.json
+  s_7d95ac773a7cfa::t_c941331544747b 1
+babel/src/fastpath/PinyinLattice.cpp
+  s_24d7312421289e::t_aa33bcfeaf754b 1-72
+babel/content/dictionaries/8105.dict.yaml
+  s_24d7312421289e::t_44ff083032f3bd 1-8828
+babel/src/fastpath/PinyinLattice.h
+  s_24d7312421289e::t_04d3edf01fa278 1-59
+specs/002-lattice-dict-model-switch/research.md
+  s_d5ca39eec975fc::t_abbe1fc63b720c 80
+  s_d5ca39eec975fc::t_6ea6678e16090f 354,356,358-368
+  s_d5ca39eec975fc::t_3e2bbd8a808b72 265
+  s_d5ca39eec975fc::t_db0c468b6b3fae 301
+  s_d5ca39eec975fc::t_4acae719edb3cc 254,256-263
+  s_d5ca39eec975fc::t_070e5ee5e78277 206,208-210
+  s_d5ca39eec975fc::t_91f918492ff98a 312,314-316
+  s_86ac9016938e3b::t_c8a8539648f9bc 89
+  s_d5ca39eec975fc::t_bcb9770382e1e4 120
+  s_d5ca39eec975fc::t_4a2b9ffc2eb070 132,134-136
+  s_86ac9016938e3b::t_cd04c734346d1a 1-11,13-26,28-79,81-88,90-91,93,97-119,121-131,133,137,139-149,151,155-193,195-205,207,211-241,243-253,255,264,266-276,278,282-300,302-311,313,317-353,355,357
+  s_d5ca39eec975fc::t_190a226b3e8047 138
+  s_d5ca39eec975fc::t_e370ee48176ebc 242
+  s_d5ca39eec975fc::t_6059f5ac4f3a8c 150,152-154
+  s_d5ca39eec975fc::t_fb96ca1aeb1130 27
+  s_d5ca39eec975fc::t_e4d7e34e4a1f99 92,94-96
+  s_d5ca39eec975fc::t_746606b6914b80 194
+  s_d5ca39eec975fc::t_ae200590dba66f 277,279-281
+  s_d5ca39eec975fc::t_8a52599819e4fc 12
+babel/CMakeLists.txt
+  s_24d7312421289e::t_e57c3cac36e945 50-61
+babel/src/slowpath/LlmEngine.cpp
+  s_24d7312421289e::t_094da6729c1a5d 97-103,106-111
+specs/002-lattice-dict-model-switch/checklists/requirements.md
+  s_2dd6c3957121d8::t_6308aefa80ab09 18
+  s_2dd6c3957121d8::t_9189911122a24f 38-42
+  s_2dd6c3957121d8::t_4a82e78a18c020 43-47
+  s_2dd6c3957121d8::t_7dd2430e1d2946 20
+  s_7d95ac773a7cfa::t_c76122d7b888e8 1-17,19,21-37
+CLAUDE.md
+  s_86ac9016938e3b::t_24ea16ea8f0991 4-10
+tests/CMakeLists.txt
+  s_24d7312421289e::t_e6e0a0fc013e34 7-16,24-28
+tests/fastpath/FastCorrectorTest.cpp
+  s_24d7312421289e::t_5c87878b805d5e 4
+  s_24d7312421289e::t_519dd9c34b19a8 42-90
+babel/src/session/SessionController.h
+  s_24d7312421289e::t_c47fc32b4a278c 182-183,187-190
+  s_24d7312421289e::t_6bb54ab2bd1b58 126-134,154-164,169-170
+  s_24d7312421289e::t_7df195e0070f55 6
+  s_24d7312421289e::t_2b27ff9098cbfc 65-72
+  s_24d7312421289e::t_6148846a0e4e33 96-107,113
+  s_24d7312421289e::t_734dd445ff43a3 5,14
+specs/001-floating-ime-converter/spec.md
+  s_6b7ba739c15562::t_80a9c4e1b8d158 122
+  s_6b7ba739c15562::t_a2c7197c52727f 22-26
+babel/src/fastpath/RimeDictLoader.h
+  s_24d7312421289e::t_4aa4537771e879 1-54
+babel/src/fastpath/FastCorrector.h
+  s_24d7312421289e::t_32a334358fddad 5,9,14-15,19-22,28-29,32-37,39-40,45-47
+specs/002-lattice-dict-model-switch/contracts/qml-cpp-session-interface.md
+  s_86ac9016938e3b::t_8ca0e4fb5e4355 1-49,51
+  s_d5ca39eec975fc::t_81f4e35bb2f248 50,52-54
+babel/content/SettingsPanel.qml
+  s_24d7312421289e::t_eb0e0667bcdeb5 146-156
+  s_24d7312421289e::t_fc59d419f7315d 104
+  s_24d7312421289e::t_560686a95410c4 1-103,105-145,157-158
+babel/src/fastpath/DictionaryPaths.h
+  s_24d7312421289e::t_f3e5de0a786650 1-18
+tests/session/SessionControllerTest.cpp
+  s_24d7312421289e::t_fbceb154b8e2a2 9
+  s_24d7312421289e::t_16a4a0b576d444 210-212
+  s_24d7312421289e::t_248d7f996b9461 66-67
+  s_24d7312421289e::t_652183d5c07a68 148-209,213-267
+  s_24d7312421289e::t_0c025bdd483344 3-6,16-17,28-65
+  s_24d7312421289e::t_c0c5229e0d849b 12
+specs/002-lattice-dict-model-switch/quickstart.md
+  s_d5ca39eec975fc::t_0e147e27f0e97f 64-65,68-69,72,75-76
+  s_d5ca39eec975fc::t_ed4dba2be0cc1f 26-29
+  s_d5ca39eec975fc::t_c0bc720087538b 9
+  s_d5ca39eec975fc::t_064a2d2164764e 33-34
+  s_86ac9016938e3b::t_dc51a900e0c192 1-8,10-25,30-32,35-54,57-63,66-67,70-71,73-74,77-79,81-83
+  s_d5ca39eec975fc::t_652c0355df9c7e 55-56
+  s_d5ca39eec975fc::t_72d4dd47fea1d5 80
+babel/main.cpp
+  s_24d7312421289e::t_7bb253c9bfc8f4 9,12-13,16,19-85,98
+  s_24d7312421289e::t_85c8d8a747e33a 99
+babel/content/dictionaries/base.dict.yaml
+  s_24d7312421289e::t_192406630be053 1-558177
+babel/content/dictionaries/ext.dict.yaml
+  s_24d7312421289e::t_5a533272fa018c 1-339211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7ee53480140f5d4d360c40db807eefe6533eeb8",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_24d7312421289e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "b13ceab2-0e4c-4a6c-b290-17bdc29563a0",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_2dd6c3957121d8": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "3228da68-6d0d-407d-80b9-bcee826b2690",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_334ecd4282aeaf": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "44e5300b-5a71-4fa7-b63e-ab7e4c08cae6",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_7d95ac773a7cfa": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "3d866a38-3189-44eb-8f47-5f77f8e221b0",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_86ac9016938e3b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "093e9c03-a0c8-422f-8348-ebb02024ac02",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_d5ca39eec975fc": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a975164e-fb55-47b6-bd4e-65442d8f3342",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
