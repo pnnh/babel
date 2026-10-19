@@ -1,0 +1,28 @@
+tests/slowpath/DebounceSchedulerTest.cpp
+  s_6b7ba739c15562::t_1bcf4a4d714798 75-77,79-85
+babel/src/slowpath/DebounceScheduler.cpp
+  s_6b7ba739c15562::t_1ee5ce3e71a400 36-42,48,55
+babel/src/slowpath/DebounceScheduler.h
+  s_6b7ba739c15562::t_b2ae2f1a0a434b 45-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf743a1a33bbdda153ad7c70d4193a93be73791e",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
