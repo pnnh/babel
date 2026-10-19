@@ -46,8 +46,8 @@ void PinyinTrie::collectCandidates(const TrieNode *node, std::vector<std::pair<s
   }
 }
 
-std::vector<std::string> PinyinTrie::queryPrefix(const TrieNode *root, const std::string &prefix,
-                                                  std::size_t maxResults) {
+std::vector<std::pair<std::string, double>> PinyinTrie::queryPrefix(const TrieNode *root, const std::string &prefix,
+                                                                      std::size_t maxResults) {
   const TrieNode *node = root;
   for (const char ch : prefix) {
     const auto it = node->children.find(ch);
@@ -60,22 +60,19 @@ std::vector<std::string> PinyinTrie::queryPrefix(const TrieNode *root, const std
   collectCandidates(node, &gathered);
   std::sort(gathered.begin(), gathered.end(),
             [](const auto &a, const auto &b) { return a.second > b.second; });
-  std::vector<std::string> result;
-  result.reserve(std::min(maxResults, gathered.size()));
-  for (const auto &[surfaceForm, weight] : gathered) {
-    if (result.size() >= maxResults) {
-      break;
-    }
-    result.push_back(surfaceForm);
+  if (gathered.size() > maxResults) {
+    gathered.resize(maxResults);
   }
-  return result;
+  return gathered;
 }
 
-std::vector<std::string> PinyinTrie::queryByFullPinyin(const std::string &pinyin, std::size_t maxResults) const {
+std::vector<std::pair<std::string, double>> PinyinTrie::queryByFullPinyin(const std::string &pinyin,
+                                                                           std::size_t maxResults) const {
   return queryPrefix(m_fullRoot.get(), pinyin, maxResults);
 }
 
-std::vector<std::string> PinyinTrie::queryByAbbrev(const std::string &abbrev, std::size_t maxResults) const {
+std::vector<std::pair<std::string, double>> PinyinTrie::queryByAbbrev(const std::string &abbrev,
+                                                                       std::size_t maxResults) const {
   return queryPrefix(m_abbrevRoot.get(), abbrev, maxResults);
 }
 

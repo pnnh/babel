@@ -19,11 +19,13 @@ class PinyinTrie {
   /// 由词典条目构建索引（覆盖式重建）。
   void build(const std::vector<DictionaryEntry> &entries);
 
-  /// 全拼前缀匹配，返回候选词形（按 frequencyWeight 降序）。
-  std::vector<std::string> queryByFullPinyin(const std::string &pinyin, std::size_t maxResults = 5) const;
+  /// 全拼前缀匹配，返回 (候选词形, frequencyWeight) 按权重降序排列。
+  std::vector<std::pair<std::string, double>> queryByFullPinyin(const std::string &pinyin,
+                                                                  std::size_t maxResults = 5) const;
 
-  /// 简拼前缀匹配，返回候选词形（按 frequencyWeight 降序）。
-  std::vector<std::string> queryByAbbrev(const std::string &abbrev, std::size_t maxResults = 5) const;
+  /// 简拼前缀匹配，返回 (候选词形, frequencyWeight) 按权重降序排列。
+  std::vector<std::pair<std::string, double>> queryByAbbrev(const std::string &abbrev,
+                                                              std::size_t maxResults = 5) const;
 
  private:
   struct TrieNode {
@@ -32,8 +34,8 @@ class PinyinTrie {
   };
 
   static void insert(TrieNode *root, const std::string &key, const std::string &surfaceForm, double weight);
-  static std::vector<std::string> queryPrefix(const TrieNode *root, const std::string &prefix,
-                                               std::size_t maxResults);
+  static std::vector<std::pair<std::string, double>> queryPrefix(const TrieNode *root, const std::string &prefix,
+                                                                   std::size_t maxResults);
   static void collectCandidates(const TrieNode *node, std::vector<std::pair<std::string, double>> *out);
 
   std::unique_ptr<TrieNode> m_fullRoot;

@@ -27,10 +27,38 @@ Window {
     }
 
     Rectangle {
+        id: mainView
         anchors.fill: parent
         color: "#2b2b2b"
         border.color: "#555555"
         radius: 8
+        visible: !SessionController.settingsVisible
+
+        // 浮窗右上角设置入口（FR-010）：点击进入设置页面，复用同一 Window 内的
+        // 视图切换方案（research.md §11），不新建独立 Window。
+        Rectangle {
+            id: settingsButton
+            width: 28
+            height: 28
+            radius: 14
+            color: "#444444"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 8
+            z: 1
+
+            Text {
+                anchors.centerIn: parent
+                text: "⚙"
+                color: "white"
+                font.pixelSize: 16
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: SessionController.openSettings()
+            }
+        }
 
         Column {
             anchors.fill: parent
@@ -125,5 +153,12 @@ Window {
                 text: "已复制到剪贴板，请手动粘贴"
             }
         }
+    }
+
+    // 设置视图（同一 Window 内视图切换，research.md §11）：settingsVisible=true
+    // 时展示，默认隐藏；与 mainView 互斥显示，不新建独立 Window。
+    SettingsPanel {
+        anchors.fill: parent
+        visible: SessionController.settingsVisible
     }
 }

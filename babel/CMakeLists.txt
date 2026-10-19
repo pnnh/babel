@@ -47,7 +47,18 @@ file(GLOB_RECURSE ASSETS_SOURCES
         content/*.svg
         content/*.jpeg
         content/*.webp)
- 
+
+# 002-lattice-dict-model-switch（T002）：随包分发的 iDvel/rime-ice 拼音词库原始
+# 数据文件（GPLv3，见 content/dictionaries/NOTICE-rime-ice.txt）连同许可证全文/
+# 来源声明一并内嵌为 Qt 资源，供 babel/main.cpp 首次启动时部署到约定词库目录
+# （FR-001「随包分发」、research.md §3）。零新增第三方依赖。
+file(GLOB_RECURSE DICTIONARY_SOURCES
+        RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        content/dictionaries/*.dict.yaml
+        content/dictionaries/LICENSE-rime-ice.txt
+        content/dictionaries/NOTICE-rime-ice.txt)
+list(APPEND ASSETS_SOURCES ${DICTIONARY_SOURCES})
+
 file(GLOB_RECURSE QUICK_SOURCES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         content/*.qml)

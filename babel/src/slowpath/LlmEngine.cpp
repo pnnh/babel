@@ -94,9 +94,21 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
 
   // Qwen2.5-Instruct 采用 ChatML 对话模板；本 MVP 固定系统提示词，仅要求输出
   // 改写后的标准中文句子，不附加解释（对应 FR-004 的"标准中文译写结果"）。
+  //
+  // 002-lattice-dict-model-switch（T021，FR-007，contracts/llm-prompt-annotation-
+  // contract.md）：输入文本中可能包含 ⟦原始token:候选1 权重1|候选2 权重2|...⟧
+  // 形式的结构化标注片段（`PinyinLattice::toAnnotatedPromptText()` 产出，仅对存
+  // 在真实歧义的拼音位置出现），用于向模型传递"同一位置的多个候选汉字及其可
+  // 信度"供结合上下文消歧；系统提示词补充说明该语法含义，`generate()` 对外签名
+  // 仍为单一 QString 不变。
   static constexpr char kSystemPrompt[] =
       "你是一个把中英文混杂的草稿整理为标准、通顺中文表达的助手。"
-      "只输出改写后的标准中文句子，不要添加任何解释或前后缀。";
+      "只输出改写后的标准中文句子，不要添加任何解释或前后缀。"
+      "输入文本中可能包含形如 \xe2\x9f\xa6原始拼音:候选1 权重1|候选2 权重2|...\xe2\x9f\xa7"
+      "（使用 ⟦ ⟧ 包裹、| 分隔）的标注片段，表示同一位置存在多个候选汉字及其可信度数值"
+      "（数值越大越可信）；这是因为该拼音存在同音字歧义，你必须结合上下文从候选中选择"
+      "语义最合适的一项（不要求必须选择可信度最高者）；最终输出的句子中绝对不能包含"
+      "⟦、⟧、| 等标注符号本身，只能是选定后的纯中文文字。";
   const std::string prompt = std::string("<|im_start|>system\n") + kSystemPrompt + "<|im_end|>\n" +
                               "<|im_start|>user\n" + normalizedInput.toStdString() + "<|im_end|>\n" +
                               "<|im_start|>assistant\n";

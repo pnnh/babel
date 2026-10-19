@@ -17,6 +17,14 @@ std::vector<DictionaryEntry> sampleEntries() {
       {4, "好的", "haode", "hd", 80.0},
   };
 }
+
+/// 查找候选词形在结果中对应的权重，便于按词形断言权重值而不依赖候选顺序。
+double weightOf(const std::vector<std::pair<std::string, double>> &results, const std::string &surface) {
+  for (const auto &[form, weight] : results) {
+    if (form == surface) return weight;
+  }
+  return -1.0;
+}
 }  // namespace
 
 // T016 [US1]：全拼/简拼匹配命中率。
@@ -26,7 +34,7 @@ TEST(PinyinTrieTest, QueryByFullPinyinExactMatch) {
   trie.build(sampleEntries());
   const auto results = trie.queryByFullPinyin("nihao");
   ASSERT_FALSE(results.empty());
-  EXPECT_EQ(results.front(), "你好");
+  EXPECT_EQ(results.front().first, "你好");
 }
 
 TEST(PinyinTrieTest, QueryByFullPinyinPrefixReturnsAllMatches) {
@@ -36,7 +44,7 @@ TEST(PinyinTrieTest, QueryByFullPinyinPrefixReturnsAllMatches) {
   // "hao" 是 "好"(haode 前缀匹配不成立，haode 全拼是 "haode" 非 "hao") 的精确全拼，
   // 应至少命中 "好"。
   ASSERT_FALSE(results.empty());
-  EXPECT_NE(std::find(results.begin(), results.end(), "好"), results.end());
+  EXPECT_NE(weightOf(results, "好"), -1.0);
 }
 
 TEST(PinyinTrieTest, QueryByAbbrevMatchesInitialLetters) {
@@ -44,7 +52,7 @@ TEST(PinyinTrieTest, QueryByAbbrevMatchesInitialLetters) {
   trie.build(sampleEntries());
   const auto results = trie.queryByAbbrev("nh");
   ASSERT_FALSE(results.empty());
-  EXPECT_EQ(results.front(), "你好");
+  EXPECT_EQ(results.front().first, "你好");
 }
 
 TEST(PinyinTrieTest, QueryRanksByFrequencyWeightDescending) {
@@ -55,7 +63,26 @@ TEST(PinyinTrieTest, QueryRanksByFrequencyWeightDescending) {
   });
   const auto results = trie.queryByFullPinyin("ni", 2);
   ASSERT_EQ(results.size(), 2u);
-  EXPECT_EQ(results.front(), "你");  // 词频更高者排在前面
+  EXPECT_EQ(results.front().first, "你");  // 词频更高者排在前面
+}
+
+// T014 [US2]：queryByFullPinyin()/queryByAbbrev() 新返回类型携带 frequencyWeight
+// （而非丢弃权重的 std::vector<std::string>），供 FastCorrector::buildLattice()
+// 构建多候选格位时参与排序/归一化（research.md §5.1/data-model.md §1）。
+TEST(PinyinTrieTest, QueryByFullPinyinReturnsWeightAlongsideSurfaceForm) {
+  PinyinTrie trie;
+  trie.build(sampleEntries());
+  const auto results = trie.queryByFullPinyin("nihao", 5);
+  ASSERT_FALSE(results.empty());
+  EXPECT_DOUBLE_EQ(weightOf(results, "你好"), 50.0);
+}
+
+TEST(PinyinTrieTest, QueryByAbbrevReturnsWeightAlongsideSurfaceForm) {
+  PinyinTrie trie;
+  trie.build(sampleEntries());
+  const auto results = trie.queryByAbbrev("nh", 5);
+  ASSERT_FALSE(results.empty());
+  EXPECT_DOUBLE_EQ(weightOf(results, "你好"), 50.0);
 }
 
 TEST(PinyinTrieTest, UnknownPrefixReturnsEmpty) {

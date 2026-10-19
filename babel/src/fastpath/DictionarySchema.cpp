@@ -33,6 +33,13 @@ bool insertDictionaryEntries(sqlite3 *db, const std::vector<DictionaryEntry> &en
     spdlog::error("insertDictionaryEntries prepare 失败: {}", sqlite3_errmsg(db));
     return false;
   }
+  // 002-lattice-dict-model-switch：真实词库规模下（单文件可达数十万条，
+  // research.md §1）逐行独立 autocommit 事务的写入耗时不可接受（数十万次磁盘
+  // fsync）；显式包裹为单个事务（纯内部性能实现细节，不改变 INSERT OR IGNORE
+  // 语义与最终持久化结果，宪章原则 IV）。
+  char *errMsg = nullptr;
+  sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, &errMsg);
+  sqlite3_free(errMsg);
   bool ok = true;
   for (const auto &entry : entries) {
     sqlite3_reset(stmt);
@@ -46,6 +53,9 @@ bool insertDictionaryEntries(sqlite3 *db, const std::vector<DictionaryEntry> &en
     }
   }
   sqlite3_finalize(stmt);
+  errMsg = nullptr;
+  sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errMsg);
+  sqlite3_free(errMsg);
   return ok;
 }
 
