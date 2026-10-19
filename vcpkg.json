@@ -10,6 +10,19 @@
     },
     {
       "name": "sqlite3"
+    },
+    {
+      "name": "gtest"
+    },
+    {
+      "name": "llama-cpp",
+      "default-features": false,
+      "features": [
+        {
+          "name": "metal",
+          "platform": "osx"
+        }
+      ]
     }
   ],
   "overrides": []

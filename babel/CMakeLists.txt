@@ -77,6 +77,10 @@ target_link_libraries(${APP_NAME} PUBLIC ${Boost_LIBRARIES})
 # 查找并引用Sqlite解析库
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 target_link_libraries(${APP_NAME} PUBLIC unofficial::sqlite3::sqlite3)
- 
+
+# 引用本特性（001-floating-ime-converter）新增的 babel_core 业务逻辑静态库
+add_subdirectory(src)
+target_link_libraries(${APP_NAME} PUBLIC babel_core)
+
 # 完成 Qt 目标配置
 qt_finalize_target(${APP_NAME})

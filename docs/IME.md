@@ -176,4 +176,39 @@
 
 ### Phase 4: 领域微调与个人化自适应
 * 训练并集成抗噪 LoRA 模型，将参数规模收敛至 2B~3B 级别。
+
+---
+
+## 8. MVP 实现现状（`specs/001-floating-ime-converter`，T063 补充记录）
+
+本节记录 Phase 2（桌面悬浮交互原型）范围内、feature `001-floating-ime-converter` 已实际交付的内容，
+避免本文档（产品愿景）与代码实现脱节。权威范围定义见该特性的
+`specs/001-floating-ime-converter/spec.md`，本节仅做指引性摘要。
+
+### 8.1 已交付（MVP）
+
+* 全局热键唤起无边框浮窗（默认 `Ctrl+Alt+Space`，macOS `Control+Option+Space`），捕获当时的系统焦点窗口。
+* 快流：仓库内自研实现（编辑距离前缀索引思路 + 拼音/简拼 Trie + QWERTY 键位邻近加权），
+  **并非**本文档 §3/§7 Phase 1 中提及的第三方 `SymSpell (C++)` 库（见
+  `specs/001-floating-ime-converter/research.md` §2 的选型与排除理由）。
+* 慢流：`llama.cpp` 加载 **Qwen2.5-3B-Instruct GGUF Q4_K_M**（而非本文档 §6/§7 Phase 1 提及的
+  `Gemma-2-2B`），模型文件需用户手动下载后放置于应用约定本地目录，不随安装包分发、
+  不提供应用内自动下载入口（`research.md` §7）。
+* 回车确认后：标准中文写入系统剪贴板，并尝试平台原生模拟粘贴注入
+  （Windows `SendInput` / macOS `CGEventPost` / Linux X11 `XTest`）；不支持/失败时统一降级为
+  "已复制到剪贴板，请手动粘贴"，不区分具体原因。
+* 模型文件缺失/损坏、慢流异常、注入权限缺失等场景下浮窗保持可操作、给出可理解提示，不崩溃。
+
+### 8.2 本次 MVP 明确未交付（Out of Scope，详见 `spec.md` §Out of Scope）
+
+* 系统级输入法框架接入（Windows TSF / macOS IMKit / Linux Fcitx5）——对应本文档 §7 Phase 3，
+  留待后续路线图，MVP 仅以独立浮窗工具形式交付。
+* LoRA 微调、噪声语料合成与训练管道——对应本文档 §6/§7 Phase 4，MVP 仅使用现成开源量化模型
+  配合提示词工程，不训练/微调任何自有模型。
+* 学习提示气泡（本文档 §2.2 的 "Learning Bubble"）的精细动画/打字机式自愈呈现，以及用户个人
+  生词本、个性化学习记忆、学习进度统计——MVP 的 `learningTipText`/`learningTipVisible` 属性
+  已预留接口，但本轮未接入实际的英文表达建议生成内容，默认不展示该区域。
+* Linux Wayland 等环境下的无感自动文本注入——统一走"请手动粘贴"降级路径，不强行实现
+  无障碍权限绕过方案。
+
 * 引入用户个人生词本与高频词本地缓存，随使用时间越长，响应越快越精准。

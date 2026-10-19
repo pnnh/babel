@@ -50,4 +50,5 @@ endif ()
 include(GenerateExportHeader)
 
 add_subdirectory(babel)
+add_subdirectory(tests)
    
