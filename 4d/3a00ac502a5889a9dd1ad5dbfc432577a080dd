@@ -1,0 +1,267 @@
+babel/src/fastpath/DictionarySchema.cpp
+  s_ea690f5f16772a::t_1256295364ee02 1-103
+babel/src/inject/InjectionResult.h
+  s_ea690f5f16772a::t_cab22380faadaf 1-25
+tests/CMakeLists.txt
+  s_ea690f5f16772a::t_6c46efaa683051 1-15
+babel/src/inject/PasteInjector_x11.cpp
+  s_ea690f5f16772a::t_ae3b3bc32f0ead 1-76
+specs/001-floating-ime-converter/plan.md
+  s_e949a28ed9a9cd::t_084a866146b841 1-16,18-25,30,32-34,36-49,51-53,55,78-83,85,87,89,91,93,95,97,99-102,105-137,158,160-168
+  s_f58ed0acfbd284::t_189b374d9f07ff 26-29,31,35
+  s_f58ed0acfbd284::t_02b8c0cc15fbd7 50
+  s_f58ed0acfbd284::t_3e6034ac447997 139-157
+  s_f58ed0acfbd284::t_c801db91352672 54,56-77,84,86,90,92,94,96,98,103-104
+  s_f58ed0acfbd284::t_110ee197741c01 138,159
+  s_f58ed0acfbd284::t_bac0091e5c8335 88
+  s_f58ed0acfbd284::t_d2acce45736c30 17
+tests/inject/PasteInjectorUnsupportedTest.cpp
+  s_ea690f5f16772a::t_e644b58e2a7d09 1-3,5-61
+  s_ea690f5f16772a::t_af37ddb08d329e 4
+babel/src/session/OutputPreviewTypes.h
+  s_ea690f5f16772a::t_89222be481677b 1-35
+babel/src/fastpath/DictionarySchema.h
+  s_ea690f5f16772a::t_dcf52d80c9cd74 1-32
+babel/src/slowpath/ModelPaths.h
+  s_ea690f5f16772a::t_873abc541f833f 1-21
+tests/slowpath/LlmEngineGenerateTest.cpp
+  s_6b7ba739c15562::t_a27e8aa5a0e075 44-45
+  s_6b7ba739c15562::t_7cdb2a78ee843e 3-4,15-19,30
+  s_6b7ba739c15562::t_dda6bb768d1506 35-43,47-54,60-62
+  s_6b7ba739c15562::t_49f98220596ec7 55
+  s_6b7ba739c15562::t_5efda8cbc8434c 46,56-59
+  s_6b7ba739c15562::t_d79d06af500f53 8-12
+  s_6b7ba739c15562::t_bd6cda50010be5 1-2,5-7,13-14,20-29
+  s_6b7ba739c15562::t_71e9f6c3cf0e12 31-34
+babel/src/focus/FocusContext.h
+  s_ea690f5f16772a::t_603a75a20fe6c2 1-33
+babel/src/fastpath/PinyinTrie.h
+  s_ea690f5f16772a::t_9dc9535cd73445 1-36,38-43
+  s_ea690f5f16772a::t_a5844dc1b30596 37
+babel/src/CMakeLists.txt
+  s_ea690f5f16772a::t_1182c634aeb333 1-43,47-65
+  s_ea690f5f16772a::t_63c3452c021aa7 44-46
+babel/main.cpp
+  s_ea690f5f16772a::t_e9c45ef6d75065 13-14,27-31,33-34
+babel/src/hotkey/HotkeyBinding.h
+  s_ea690f5f16772a::t_878b6cdc59a913 1-36
+vcpkg.json
+  s_ea690f5f16772a::t_9d7ededcbdbc96 13-25
+babel/src/session/SessionController.h
+  s_6b7ba739c15562::t_edc3f2da76cf61 13-14
+  s_ea690f5f16772a::t_5180f6e36b822a 49-51
+  s_ea690f5f16772a::t_cb6688217bedde 71-76
+  s_ea690f5f16772a::t_fb39dc4dba89cc 106-109
+  s_ea690f5f16772a::t_0c130adb4f864f 1-12,15-48,52-70,77-105,110-124,126-143,145-147
+  s_ea690f5f16772a::t_3eb4186cfe5e0f 125
+  s_6b7ba739c15562::t_786e5a6d2bc08e 144
+tests/fastpath/FastCorrectorTest.cpp
+  s_ea690f5f16772a::t_ed958e60415b4e 1-24,27,30-40
+  s_ea690f5f16772a::t_ec58885122d28d 25-26,28-29
+babel/src/slowpath/LlmEngine.cpp
+  s_ea690f5f16772a::t_a5db0f9b81c0e3 1-84,95-152
+  s_6b7ba739c15562::t_b8ee9869f00088 85-94
+babel/src/hotkey/GlobalHotkey.h
+  s_ea690f5f16772a::t_65d841fc69c5f0 1-31
+babel/src/inject/PasteInjector_win.cpp
+  s_ea690f5f16772a::t_9c67b45397ac2c 1-44
+tests/session/ManualPasteHintTest.cpp
+  s_ea690f5f16772a::t_5627b3ccbb0f76 1-58
+tests/inject/PasteInjectorOtherFailureTest.cpp
+  s_ea690f5f16772a::t_5c93cde5bb35fb 1-28
+babel/src/fastpath/KeyboardProximityMap.h
+  s_ea690f5f16772a::t_dfb63fec0b61ac 1-29
+tests/fastpath/PinyinTrieTest.cpp
+  s_ea690f5f16772a::t_bc1e59a85bc9d1 1-2,5-66
+  s_ea690f5f16772a::t_3f0fdb91f55011 3-4
+.specify/feature.json
+  s_6dbd79c2812b6d::t_fa555c70a551f1 2
+babel/src/hotkey/GlobalHotkey_win.cpp
+  s_ea690f5f16772a::t_6b29601048a888 1-93
+babel/src/hotkey/GlobalHotkey_mac.mm
+  s_ea690f5f16772a::t_f5e70df5dc16e6 1-80
+tests/slowpath/LlmEngineUnavailableTest.cpp
+  s_ea690f5f16772a::t_93f59fe5d87f13 1-38
+babel/src/inject/PasteInjector.h
+  s_ea690f5f16772a::t_91d061e7ecbb2b 1-25
+specs/001-floating-ime-converter/spec.md
+  s_66a2d1c381e262::t_5b8c291a0a45b9 127
+  s_66a2d1c381e262::t_12a6f6465ec0a2 18
+  s_66a2d1c381e262::t_d6951a50c3daf6 121
+  s_6dbd79c2812b6d::t_a127e85005e8ff 1,3,5,9,24,26,28,30,34-39,43,45,47,49,53-54,58,60,62,64,68-70,76-80,82-83,90-99,105-109,115-120,125-126,128-138
+  s_66a2d1c381e262::t_4e8e67c0a49d42 100
+  s_6dbd79c2812b6d::t_40f2ba0b77066e 2,4,6-8,10-12,22-23,25,27,29,31-33,40-42,44,46,48,50-52,55-57,59,61,63,65-67,71-75,84-88,102-104,110-114,122-124
+  s_66a2d1c381e262::t_124a34f11fe2eb 20
+  s_66a2d1c381e262::t_6c317165acc831 81
+  s_66a2d1c381e262::t_caab4e5886355d 13-17,21
+  s_66a2d1c381e262::t_795d7b8d99fd3b 19
+  s_66a2d1c381e262::t_cfc7ce5c10d3b7 89
+  s_66a2d1c381e262::t_5c0061301464f3 101
+babel/CMakeLists.txt
+  s_ea690f5f16772a::t_60df11ee430dfe 80-84
+babel/src/fastpath/PinyinTrie.cpp
+  s_ea690f5f16772a::t_a2aa3fdb61f841 1-38,41-82
+  s_ea690f5f16772a::t_bbcc1bc72ec33b 39-40
+babel/src/slowpath/ModelPaths.cpp
+  s_ea690f5f16772a::t_3558de08cdfec3 1-17
+babel/src/inject/PasteInjector_mac.mm
+  s_ea690f5f16772a::t_59bdc4b80c3ce2 1-61
+tests/inject/PasteInjectorPermissionTest.cpp
+  s_ea690f5f16772a::t_c3bd920ebe4ca6 1-36
+specs/001-floating-ime-converter/contracts/global-hotkey-contract.md
+  s_f58ed0acfbd284::t_c2170033b75f64 7
+  s_e949a28ed9a9cd::t_c3a9d4c7e2d0c2 1-6,8-26
+babel/content/Main.qml
+  s_6b7ba739c15562::t_57397ede85f554 3-9,11
+specs/001-floating-ime-converter/contracts/injection-outcome-contract.md
+  s_e949a28ed9a9cd::t_2c6d41c45282af 1-2,4-6,8-27
+  s_f58ed0acfbd284::t_1bbcdbc0923f16 7
+  s_f58ed0acfbd284::t_c32d5e8d338030 3
+babel/src/session/DraftTypes.h
+  s_ea690f5f16772a::t_074b0b509697e2 1-23
+babel/src/inject/ClipboardWriter.cpp
+  s_ea690f5f16772a::t_6c89b63b2efc06 1-14
+docs/IME.md
+  s_ea690f5f16772a::t_972a5ed9d79996 179-213
+babel/src/fastpath/FastCorrector.h
+  s_ea690f5f16772a::t_ec89e7ba264fee 1-35
+babel/src/session/SessionController.cpp
+  s_ea690f5f16772a::t_e2441247d29a55 1-48,63-126,129-187,190-193,197,215,256-258
+  s_6b7ba739c15562::t_f5586ec88489ea 127-128
+  s_6b7ba739c15562::t_3662887f7d99b8 49-62
+  s_ea690f5f16772a::t_4041a6e4b28c98 188-189,194-196,198-214,216-255
+babel/src/inject/ClipboardWriter.h
+  s_ea690f5f16772a::t_6d297968523758 1-19
+tests/hotkey/GlobalHotkeyTest.cpp
+  s_ea690f5f16772a::t_4d5b86b84d5d4a 1-94
+specs/001-floating-ime-converter/tasks.md
+  s_6b7ba739c15562::t_674480d19e7803 132
+  s_ea690f5f16772a::t_51db95c40b90bb 170-171,177
+  s_ea690f5f16772a::t_0d41db55cf7627 39-42
+  s_6b7ba739c15562::t_154165a541e0d8 109
+  s_6b7ba739c15562::t_0110532c44a342 172,174,176
+  s_788738ce16f2e8::t_556269cd722777 173
+  s_ea690f5f16772a::t_ff72f360f16a9f 79-83
+  s_ea690f5f16772a::t_f57c24e60f80c0 107
+  s_ea690f5f16772a::t_797631c6e57bf6 54-63,87-106
+  s_788738ce16f2e8::t_5cfb57d7ff94cd 1-38,43-53,64-78,84-86,108,110-122,125-127,131,133-145,150-152,159,161-169,175,178-279
+  s_ea690f5f16772a::t_ff81303c1cf342 146-149,153-158
+  s_ea690f5f16772a::t_9d8f420665c396 123-124,128-130
+  s_6b7ba739c15562::t_dde45b8e2e8886 160
+babel/src/focus/FocusContext.cpp
+  s_ea690f5f16772a::t_df0e4b92f790a8 1-69
+babel/src/hotkey/GlobalHotkey_x11.cpp
+  s_ea690f5f16772a::t_f50cdaf36425d8 1-120
+babel/src/fastpath/FastCorrector.cpp
+  s_ea690f5f16772a::t_4dbecc2f6f28e2 1-90,93-94,99-101,104-108
+  s_ea690f5f16772a::t_8a04d2520fd79c 91-92,95-98,102-103
+babel/src/slowpath/DebounceScheduler.cpp
+  s_ea690f5f16772a::t_4b414d0f881add 1-54
+babel/src/slowpath/LlmEngine.h
+  s_ea690f5f16772a::t_e6363d1c42e56d 1-43
+babel/content/FloatingWindow.qml
+  s_ea690f5f16772a::t_54a893cc1bc84d 1-12,14-20,22-39,44-62,75-129
+  s_6b7ba739c15562::t_156eca415fc188 21,40-43,63-74
+  s_6b7ba739c15562::t_a1c9e7fdff3994 13
+tests/slowpath/DebounceSchedulerTest.cpp
+  s_ea690f5f16772a::t_0d98a9377a0e3a 1-101
+CMakeLists.txt
+  s_ea690f5f16772a::t_784a03fbc53f92 53
+babel/src/fastpath/KeyboardProximityMap.cpp
+  s_ea690f5f16772a::t_fd0f383adea7bd 1-36
+tests/session/ModelUnavailableTest.cpp
+  s_ea690f5f16772a::t_cbcc6da2e71c51 1-46
+specs/001-floating-ime-converter/research.md
+  s_f58ed0acfbd284::t_626ef67b1f56d5 11-25
+  s_f58ed0acfbd284::t_8dce381b824037 61,63-69
+  s_f58ed0acfbd284::t_ca05a9eb15133d 126,128-135
+  s_e949a28ed9a9cd::t_26dab5dc430cff 1-10,26-60,62,70-89,91,99,101,103-125,127,136-152,154,164-172
+  s_f58ed0acfbd284::t_6976579930fe3c 90,92-98,100,102
+  s_f58ed0acfbd284::t_d7f50a5fcdff4d 173-191
+  s_f58ed0acfbd284::t_b81aad2a295237 153,155-163
+specs/001-floating-ime-converter/contracts/qml-cpp-session-interface.md
+  s_e949a28ed9a9cd::t_4a7190333dddec 1-45
+specs/001-floating-ime-converter/quickstart.md
+  s_f58ed0acfbd284::t_9c3a28c5199200 9-11
+  s_f58ed0acfbd284::t_e100cb2fb7d146 76
+  s_e949a28ed9a9cd::t_b5c6970d3018a1 1-8,12-75
+tests/session/SessionControllerTest.cpp
+  s_ea690f5f16772a::t_e7dbf450f7e671 1-99
+babel/src/slowpath/DebounceScheduler.h
+  s_ea690f5f16772a::t_1356ee9df552ae 1-47
+specs/001-floating-ime-converter/data-model.md
+  s_f58ed0acfbd284::t_25a8fdde5b1806 68
+  s_e949a28ed9a9cd::t_bad60bff027920 1-10,12-67,69-102,105-106,108-142
+  s_f58ed0acfbd284::t_1fc69a093a113e 103-104
+  s_f58ed0acfbd284::t_a2d2c0da540782 107
+  s_f58ed0acfbd284::t_3a1a2f164b2153 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d3a00ac502a5889a9dd1ad5dbfc432577a080dd",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_66a2d1c381e262": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "b91770b5-3caf-4d76-a916-590f8f2c3958",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6dbd79c2812b6d": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "ad319d9e-d8e3-4e50-bb2f-cffd6105c269",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_788738ce16f2e8": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f695df53-ed5e-4b0b-a637-ad408644c304",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_e949a28ed9a9cd": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "24900baa-bbe1-4d69-91d9-05fa302f4f42",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_ea690f5f16772a": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "51d630bf-e8de-4172-8335-365b8dc7dc11",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_f58ed0acfbd284": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "c8aa571b-3c5a-4c68-8511-1a59f1859df5",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
