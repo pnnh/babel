@@ -72,8 +72,17 @@ TEST(DebounceSchedulerTest, InputChangeDuringGeneratingMovesToStaleThenRetrigger
   scheduler.onInputChanged(QStringLiteral("ab"), t0 + std::chrono::milliseconds(120));
   EXPECT_EQ(scheduler.state(), GenerationState::Stale);
 
-  // 新一轮防抖完成后应重新触发生成。
+  // llama_context 不支持并发 decode：只要上一次触发的生成仍在后台线程执行中
+  // （尚未调用 markGenerationComplete()），即便防抖窗口已到期也 MUST NOT 重新
+  // 触发第二次生成，避免并发调用同一 LlmEngine 实例导致崩溃。
   scheduler.tick(t0 + std::chrono::milliseconds(230));
+  EXPECT_EQ(scheduler.state(), GenerationState::Stale);
+  EXPECT_EQ(triggerCount, 1);
+
+  // 待上一次生成真正完成（调用 markGenerationComplete()）后，后续 tick() 才
+  // 应重新触发生成。
+  scheduler.markGenerationComplete();
+  scheduler.tick(t0 + std::chrono::milliseconds(240));
   EXPECT_EQ(scheduler.state(), GenerationState::Generating);
   EXPECT_EQ(triggerCount, 2);
 }

@@ -42,6 +42,11 @@ class DebounceScheduler {
   QString m_pendingInput;
   std::chrono::steady_clock::time_point m_lastChangeAt{};
   bool m_timerArmed = false;
+  // llama_context 非线程安全，不可并发 decode：标记上一次触发的生成是否仍在
+  // 后台线程执行中（即 markGenerationComplete() 尚未被调用），tick() 据此避免
+  // 在同一 LlmEngine 实例上重叠触发第二次 generate()（否则会破坏 ggml 计算图/
+  // 调度器内部状态，导致底层断言失败崩溃）。
+  bool m_generationInFlight = false;
 };
 
 }  // namespace babel::slowpath
