@@ -20,22 +20,6 @@ std::string toLower(const std::string &s) {
   return out;
 }
 
-/// 档位标签启发式分类（research.md §7.2，内部实现细节）：文件名包含 "3b"/"3-b"
-/// 归类 Low；包含 "14b" 归类 Medium；包含 "32b" 归类 High；均不匹配归类 Unknown。
-ModelDescriptor::TierHint classifyTier(const std::string &fileName) {
-  const std::string lower = toLower(fileName);
-  if (lower.find("3b") != std::string::npos || lower.find("3-b") != std::string::npos) {
-    return ModelDescriptor::TierHint::Low;
-  }
-  if (lower.find("14b") != std::string::npos) {
-    return ModelDescriptor::TierHint::Medium;
-  }
-  if (lower.find("32b") != std::string::npos) {
-    return ModelDescriptor::TierHint::High;
-  }
-  return ModelDescriptor::TierHint::Unknown;
-}
-
 /// GGUF 文件头魔数校验（research.md §7.3，用户委派 Agent 采纳 Recommendation
 /// 方案 3 的补充定义）：读取文件前 4 字节，判断是否等于 "GGUF"（0x47 0x47 0x55
 /// 0x46）。校验失败（文件过短/头 4 字节不匹配）→ KnownUnloadable；校验通过 →
@@ -91,7 +75,7 @@ std::vector<ModelDescriptor> ModelCatalog::scan() {
     if (sizeEc) {
       descriptor.sizeBytes = 0;
     }
-    descriptor.tierHint = classifyTier(fileName);
+    descriptor.tierHint = ModelCatalog::classifyTierByFileName(descriptor.fileName);
     descriptor.availability = checkGgufMagic(entry.path());
     result.push_back(std::move(descriptor));
   }
@@ -99,6 +83,45 @@ std::vector<ModelDescriptor> ModelCatalog::scan() {
   std::sort(result.begin(), result.end(),
             [](const ModelDescriptor &a, const ModelDescriptor &b) { return a.fileName < b.fileName; });
   return result;
+}
+
+ModelDescriptor::TierHint ModelCatalog::classifyTierByFileName(const QString &fileName) {
+  // 档位标签启发式分类（research.md §5，由原 .cpp 匿名命名空间私有 classifyTier()
+  // 提升为公开静态方法）：文件名包含 "3b"/"3-b" 归类 Low；包含 "7b"/"7-b" 归类
+  // Medium（新增，对应 FR-001 新中配推荐）；包含 "14b" 归类 High（变更：14B 现为
+  // 新高配推荐，原 Medium 判定已不再适用）；包含 "32b" 归类 High（不变）；均不
+  // 匹配归类 Unknown。
+  const std::string lower = toLower(fileName.toStdString());
+  if (lower.find("3b") != std::string::npos || lower.find("3-b") != std::string::npos) {
+    return ModelDescriptor::TierHint::Low;
+  }
+  if (lower.find("7b") != std::string::npos || lower.find("7-b") != std::string::npos) {
+    return ModelDescriptor::TierHint::Medium;
+  }
+  if (lower.find("14b") != std::string::npos) {
+    return ModelDescriptor::TierHint::High;
+  }
+  if (lower.find("32b") != std::string::npos) {
+    return ModelDescriptor::TierHint::High;
+  }
+  return ModelDescriptor::TierHint::Unknown;
+}
+
+std::chrono::milliseconds ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint tier) {
+  // data-model.md 二 TierDebounceProfile / contracts/debounce-tier-window-
+  // internal-contract.md 三：Unknown 复用 Low 档位数值 200ms（用户已显式决策，
+  // research.md §5）。
+  switch (tier) {
+    case ModelDescriptor::TierHint::Low:
+      return std::chrono::milliseconds(200);
+    case ModelDescriptor::TierHint::Medium:
+      return std::chrono::milliseconds(500);
+    case ModelDescriptor::TierHint::High:
+      return std::chrono::milliseconds(800);
+    case ModelDescriptor::TierHint::Unknown:
+    default:
+      return std::chrono::milliseconds(200);
+  }
 }
 
 std::vector<RecommendedModelProfile> ModelCatalog::recommendedProfiles() {
@@ -113,16 +136,16 @@ std::vector<RecommendedModelProfile> ModelCatalog::recommendedProfiles() {
       },
       RecommendedModelProfile{
           RecommendedModelProfile::Tier::Medium,
-          QStringLiteral("Qwen2.5-14B-Instruct"),
+          QStringLiteral("Qwen2.5-7B-Instruct"),
           QStringLiteral("GGUF Q4_K_M"),
-          QStringLiteral("约 9GB"),
+          QStringLiteral("约 4.6GB"),
           QStringLiteral("Apple M1 Pro + 32GB 统一内存 / Windows + RTX 4090 24GB 显存"),
       },
       RecommendedModelProfile{
           RecommendedModelProfile::Tier::High,
-          QStringLiteral("Qwen2.5-32B-Instruct"),
+          QStringLiteral("Qwen2.5-14B-Instruct"),
           QStringLiteral("GGUF Q4_K_M"),
-          QStringLiteral("约 19.85GB"),
+          QStringLiteral("约 9GB"),
           QStringLiteral("Apple M1 Pro + 32GB 统一内存 / Windows + RTX 4090 24GB 显存"),
       },
   };

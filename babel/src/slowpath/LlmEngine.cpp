@@ -7,6 +7,8 @@
 
 #if BABEL_HAVE_LLAMA_CPP
 #include <llama.h>
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -130,18 +132,56 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
     return {};
   }
 
-  llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
-  llama_sampler *sampler = llama_sampler_chain_init(sparams);
-  llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.3f));
-  llama_sampler_chain_add(sampler, llama_sampler_init_dist(/*seed=*/0));
+  // GBNF 输出语法约束（FR-005～FR-009，data-model.md 三 Output Grammar Rule，
+  // research.md §2/§3 方案 B，contracts/llm-engine-grammar-internal-
+  // contract.md）：仅排除 ⟦（U+27E6）/⟧（U+27E7）/|（U+007C）三个 Lattice 内部
+  // 标注符号，"最宽边界"——以单一负向字符类表达，不收窄其余任意 Unicode 字符
+  // （汉字/中文标点/数字/字母/全半角标点/emoji 均合法）。`root` 定义为"零个或
+  // 多个合法字符"（Kleene 星号），使语法状态机在任意生成位置都处于"可接受结
+  // 束"状态，不与既有 `llama_vocab_is_eog()` 自然终止逻辑冲突。
+  static constexpr char kOutputGrammar[] = "root ::= safe-char*\nsafe-char ::= [^\\u27E6\\u27E7\\x7C]\n";
+  static constexpr char kOutputGrammarRoot[] = "root";
+
+  // 放弃现有 llama_sampler_chain_init/llama_sampler_chain_add 一体式链条封装，
+  // 改为手动分步调用：语法采样器单独 apply 之后、temp/dist 采样器 apply 之
+  // 前，显式检查候选集合是否已全部被语法掩码为 -inf（"语法梗阻"，FR-008），
+  // 链式封装无法在这两步之间插入该检查（research.md §3 方案 A 否决理由）。
+  llama_sampler *grammar = llama_sampler_init_grammar(vocab, kOutputGrammar, kOutputGrammarRoot);
+  llama_sampler *temp = llama_sampler_init_temp(0.3f);
+  llama_sampler *dist = llama_sampler_init_dist(/*seed=*/0);
 
   std::string result;
   constexpr int kMaxOutputTokens = 256;  // MVP 固定上限，避免单次生成无界耗时
   for (int i = 0; i < kMaxOutputTokens; ++i) {
-    const llama_token nextToken = llama_sampler_sample(sampler, m_ctx, -1);
-    if (llama_vocab_is_eog(vocab, nextToken)) {
+    const float *logits = llama_get_logits_ith(m_ctx, -1);
+    const int32_t nVocab = llama_vocab_n_tokens(vocab);
+    std::vector<llama_token_data> candidates(static_cast<std::size_t>(nVocab));
+    for (int32_t t = 0; t < nVocab; ++t) {
+      candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logits[t], 0.0f};
+    }
+    llama_token_data_array cur_p{candidates.data(), candidates.size(), -1, false};
+
+    llama_sampler_apply(grammar, &cur_p);  // 语法掩码：非法 token 的 logit 被置为 -inf
+
+    const bool anyLegal = std::any_of(candidates.begin(), candidates.end(),
+                                       [](const llama_token_data &d) { return d.logit > -INFINITY; });
+    if (!anyLegal) {
+      // FR-008：语法梗阻（候选集合全部为 -inf），提前终止生成，`result` 中已
+      // 累积的部分内容即为本次返回值；不放宽约束续写、不判定失败、不要求重试。
       break;
     }
+
+    llama_sampler_apply(temp, &cur_p);
+    llama_sampler_apply(dist, &cur_p);  // 设置 cur_p.selected
+    const llama_token nextToken = cur_p.data[static_cast<std::size_t>(cur_p.selected)].id;
+    if (llama_vocab_is_eog(vocab, nextToken)) {
+      break;  // 既有自然终止逻辑不变，与梗阻提前终止是两条彼此独立的循环退出路径
+    }
+
+    // 推进语法采样器内部解析堆栈状态：不可省略，否则下一轮 apply() 会基于过期
+    // 堆栈状态误判合法性（research.md §3）。
+    llama_sampler_accept(grammar, nextToken);
+
     char buf[256] = {0};
     const int32_t written = llama_token_to_piece(vocab, nextToken, buf, sizeof(buf), 0, true);
     if (written > 0) {
@@ -153,7 +193,9 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       break;
     }
   }
-  llama_sampler_free(sampler);
+  llama_sampler_free(temp);
+  llama_sampler_free(dist);
+  llama_sampler_free(grammar);
   return QString::fromStdString(result);
 #else
   Q_UNUSED(normalizedInput);

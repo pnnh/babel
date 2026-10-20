@@ -108,3 +108,60 @@ TEST(DebounceSchedulerTest, ReadyStateMovesToStaleOnNewInput) {
   scheduler.onInputChanged(QStringLiteral("ab"), t0 + std::chrono::milliseconds(120));
   EXPECT_EQ(scheduler.state(), GenerationState::Stale);
 }
+
+// T013 [US1]：setDebounceWindow() 不改变既有状态机字段（FR-013，contracts/
+// debounce-tier-window-internal-contract.md 五 1）。分别在 Debouncing/
+// Generating/Stale 等既有状态下调用，断言调用前后 state() 不变。
+TEST(DebounceSchedulerTest, SetDebounceWindowDoesNotAlterExistingStateFields) {
+  {
+    // Debouncing 状态下调用。
+    DebounceScheduler scheduler(std::chrono::milliseconds(100), [](const QString &) {});
+    const auto t0 = std::chrono::steady_clock::now();
+    scheduler.onInputChanged(QStringLiteral("a"), t0);
+    ASSERT_EQ(scheduler.state(), GenerationState::Debouncing);
+    scheduler.setDebounceWindow(std::chrono::milliseconds(500));
+    EXPECT_EQ(scheduler.state(), GenerationState::Debouncing);
+  }
+  {
+    // Generating 状态下调用。
+    DebounceScheduler scheduler(std::chrono::milliseconds(100), [](const QString &) {});
+    const auto t0 = std::chrono::steady_clock::now();
+    scheduler.onInputChanged(QStringLiteral("a"), t0);
+    scheduler.tick(t0 + std::chrono::milliseconds(110));
+    ASSERT_EQ(scheduler.state(), GenerationState::Generating);
+    scheduler.setDebounceWindow(std::chrono::milliseconds(800));
+    EXPECT_EQ(scheduler.state(), GenerationState::Generating);
+  }
+  {
+    // Stale 状态下调用（生成期间输入再次变化）。
+    DebounceScheduler scheduler(std::chrono::milliseconds(100), [](const QString &) {});
+    const auto t0 = std::chrono::steady_clock::now();
+    scheduler.onInputChanged(QStringLiteral("a"), t0);
+    scheduler.tick(t0 + std::chrono::milliseconds(110));
+    scheduler.onInputChanged(QStringLiteral("ab"), t0 + std::chrono::milliseconds(120));
+    ASSERT_EQ(scheduler.state(), GenerationState::Stale);
+    scheduler.setDebounceWindow(std::chrono::milliseconds(200));
+    EXPECT_EQ(scheduler.state(), GenerationState::Stale);
+  }
+}
+
+// T014 [US1]：setDebounceWindow() 调用后下一次 tick() 立即使用新窗口值判定，
+// 调用前已排定的触发不受影响（contracts/debounce-tier-window-internal-
+// contract.md 一/五 2）。
+TEST(DebounceSchedulerTest, SetDebounceWindowAffectsNextTickButNotPastTrigger) {
+  int triggerCount = 0;
+  DebounceScheduler scheduler(std::chrono::milliseconds(100), [&](const QString &) { ++triggerCount; });
+  const auto t0 = std::chrono::steady_clock::now();
+  scheduler.onInputChanged(QStringLiteral("abc"), t0);
+  scheduler.setDebounceWindow(std::chrono::milliseconds(500));
+
+  // 旧 100ms 窗口下 t0+150ms 本应已触发，新 500ms 窗口下尚未到期，不应触发。
+  scheduler.tick(t0 + std::chrono::milliseconds(150));
+  EXPECT_EQ(scheduler.state(), GenerationState::Debouncing);
+  EXPECT_EQ(triggerCount, 0);
+
+  // 新 500ms 窗口到期后才触发。
+  scheduler.tick(t0 + std::chrono::milliseconds(550));
+  EXPECT_EQ(scheduler.state(), GenerationState::Generating);
+  EXPECT_EQ(triggerCount, 1);
+}

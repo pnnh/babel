@@ -51,6 +51,8 @@ void DebounceScheduler::tick(std::chrono::steady_clock::time_point now) {
   }
 }
 
+void DebounceScheduler::setDebounceWindow(std::chrono::milliseconds window) { m_debounceWindow = window; }
+
 void DebounceScheduler::markGenerationComplete() {
   m_generationInFlight = false;
   if (m_state == GenerationState::Generating) {

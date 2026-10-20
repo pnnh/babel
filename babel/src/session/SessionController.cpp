@@ -95,9 +95,14 @@ void SessionController::bootstrapPlatformDefaults() {
   }
   emit modelAvailableChanged();
 
-  // 防抖窗口 200ms：配合首批内容 <300ms、整句 <800ms 的目标（SC-003）。
+  // 防抖窗口按当前模型档位动态确定（FR-010/FR-011，contracts/debounce-tier-
+  // window-internal-contract.md 四"启动调用点"）：默认低配模型恒为 Low/200ms，
+  // 与 001/002 既有体验一致；复用 ModelCatalog 分档逻辑，不新增平行判断机制。
+  const auto defaultModelFileName = QString::fromStdString(defaultModelPath.filename().string());
+  const auto defaultTier = babel::slowpath::ModelCatalog::classifyTierByFileName(defaultModelFileName);
+  const auto defaultDebounceWindow = babel::slowpath::ModelCatalog::tierDebounceWindow(defaultTier);
   m_debounceScheduler = std::make_unique<babel::slowpath::DebounceScheduler>(
-      std::chrono::milliseconds(200), [this](const QString &snapshot) { onSlowPathTriggered(snapshot); });
+      defaultDebounceWindow, [this](const QString &snapshot) { onSlowPathTriggered(snapshot); });
 
   m_clipboardWriter = std::make_unique<babel::inject::ClipboardWriter>();
   m_pasteInjector = babel::inject::createPlatformPasteInjector();
@@ -308,6 +313,16 @@ void SessionController::applyModelSwitchResult(std::shared_ptr<babel::slowpath::
     const auto &history = m_modelRuntimeState.fallbackHistory;
     if (std::find(history.begin(), history.end(), finalModelPath) == history.end()) {
       m_modelRuntimeState.fallbackHistory.push_back(finalModelPath);
+    }
+    // 热切换完成调用点（contracts/debounce-tier-window-internal-contract.md
+    // 四）：按新模型所属档位同步调整防抖窗口时长；success == false 分支 MUST
+    // NOT 调用该流程。测试（如 SwitchModelToValidModelUpdatesStateAndEmits-
+    // Completion）经 setLlmEngine() 直接构造 SessionController 且未调用
+    // setDebounceScheduler()，此时 m_debounceScheduler 为 nullptr，须守卫。
+    if (m_debounceScheduler) {
+      const auto finalModelFileName = QString::fromStdString(finalModelPath.filename().string());
+      const auto tier = babel::slowpath::ModelCatalog::classifyTierByFileName(finalModelFileName);
+      m_debounceScheduler->setDebounceWindow(babel::slowpath::ModelCatalog::tierDebounceWindow(tier));
     }
   }
   m_modelRuntimeState.lastFallbackNotice = noticeText;

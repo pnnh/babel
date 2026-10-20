@@ -78,8 +78,85 @@ TEST(LlmEngineGenerateTest, GenerateAcceptsStructuredAnnotationTextWithoutSignat
   const QString annotatedInput = QStringLiteral("我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭");
   const QString output = engine.generate(annotatedInput);
   EXPECT_FALSE(output.isEmpty());
-  // 配套系统提示词约束：模型输出 MUST NOT 包含标注符号本身。
+  // 配套系统提示词约束 + GBNF 语法层面强制约束（FR-005）：模型输出 MUST NOT
+  // 包含 ⟦/⟧/| 三个 Lattice 内部标注符号中的任意一个。
   EXPECT_FALSE(output.contains(QStringLiteral("⟦")));
   EXPECT_FALSE(output.contains(QStringLiteral("⟧")));
+  EXPECT_FALSE(output.contains(QStringLiteral("|")));
+}
+
+// T020 [US2]：高歧义密度输入（多个 ⟦候选1 权重1|候选2 权重2|...⟧ 结构化标注片段）
+// 场景下，GBNF 语法约束仍 MUST 保证最终生成结果不含 ⟦/⟧/| 任意字符（FR-005，
+// quickstart.md 场景三 3.1/3.2，SC-004）。
+TEST(LlmEngineGenerateTest, GenerateOnHighAmbiguityDensityInputNeverLeaksAnnotationSymbols) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过真实推理生成验证。";
+  }
+
+  // 多个高歧义拼音位置（chi/shi）均附带结构化标注片段，标注密度显著高于既有
+  // GenerateAcceptsStructuredAnnotationTextWithoutSignatureChange 用例。
+  const QString highDensityInput = QStringLiteral(
+      "我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭，"
+      "然后⟦shi:是 0.40|时 0.30|事 0.15|市 0.08|式 0.05|使 0.02⟧的时候觉得"
+      "⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧得太饱了。");
+  const QString output = engine.generate(highDensityInput);
+  EXPECT_FALSE(output.contains(QStringLiteral("⟦")));
+  EXPECT_FALSE(output.contains(QStringLiteral("⟧")));
+  EXPECT_FALSE(output.contains(QStringLiteral("|")));
+}
+
+// T021 [US2]：合法混排内容（英文品牌名/技术缩写）不被 GBNF 语法约束误伐
+// （FR-007"最宽边界"，quickstart.md 场景三 3.2 第 5 步）。不强制断言模型逐字
+// 复现特定词汇本身，仅验证语法约束未因这些合法字符导致异常梗阻/空输出。
+TEST(LlmEngineGenerateTest, GenerateDoesNotFilterLegalMixedContentLikeBrandNamesOrEmoji) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过真实推理生成验证。";
+  }
+
+  const QString mixedContentInput =
+      QStringLiteral("wo gang mai le yi tai xin de iPhone，上面用 GPT 写了一段测试代码 😀");
+  const QString output = engine.generate(mixedContentInput);
+  EXPECT_FALSE(output.isEmpty());
+}
+
+// T022 [US2]：语法梗阻（候选集合全部为 -inf）情形下的健壮性（FR-008，
+// quickstart.md 场景三 3.3，"较难稳定复现，尽力而为"）：复用既有
+// RepeatedGenerateCallsOnSameEngineDoNotCrash 的多轮调用手法，验证即便某次调用
+// 触发语法梗阻提前终止，也不抛出异常、不使进程崩溃，返回值始终为合法
+// QString（不强制断言梗阻必然被触发，仅验证该路径被触发时的既有健壮性）。
+TEST(LlmEngineGenerateTest, GenerateOnGrammarStallTerminatesEarlyWithoutCrashing) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过真实推理生成验证。";
+  }
+
+  const QStringList highAmbiguityDrafts = {
+      QStringLiteral("我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭"),
+      QStringLiteral("我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭，"
+                     "然后⟦shi:是 0.40|时 0.30|事 0.15|市 0.08|式 0.05|使 0.02⟧的时候很饱"),
+      QStringLiteral("wo gang mai le yi tai xin de iPhone，上面用 GPT 写了一段测试代码 😀"),
+  };
+  for (int round = 0; round < 3; ++round) {
+    for (const QString &draft : highAmbiguityDrafts) {
+      EXPECT_NO_THROW({
+        const QString output = engine.generate(draft);
+        // generate() MUST NOT 返回 null QString（即便梗阻提前终止，已生成部分
+        // 内容仍是合法 QString；"模型不可用"情形已在上方 modelAvailable() 检查
+        // 中提前返回，不会到达此处）。
+        EXPECT_FALSE(output.isNull()) << "round=" << round << " draft=" << draft.toStdString();
+      }) << "round=" << round << " draft=" << draft.toStdString();
+    }
+  }
 }
 

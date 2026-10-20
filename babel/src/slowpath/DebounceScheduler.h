@@ -29,6 +29,13 @@ class DebounceScheduler {
 
   void tick(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
 
+  /// 运行时调整防抖窗口时长（`contracts/debounce-tier-window-internal-
+  /// contract.md` 一，FR-010/FR-013/FR-014）：仅更新 `m_debounceWindow`，不改变
+  /// 既有状态机字段（`m_state`/`m_pendingInput`/`m_lastChangeAt`/`m_timerArmed`/
+  /// `m_generationInFlight`）。可在任意 `state()` 下调用；调用后下一次 `tick()`
+  /// 对"是否已过防抖窗口"的判定立即使用新窗口值，调用前已排定的触发不受影响。
+  void setDebounceWindow(std::chrono::milliseconds window);
+
   /// 慢流生成完成：若期间无新输入（当前仍处于 Generating）则迁移至 Ready；
   /// 若期间已有新输入（处于 Stale），则保持 Stale，交由后续 tick() 重新触发。
   void markGenerationComplete();

@@ -1,1 +1,3 @@
-{"feature_directory":"specs/002-lattice-dict-model-switch"}
+{
+  "feature_directory": "specs/003-model-tier-perf-tuning"
+}

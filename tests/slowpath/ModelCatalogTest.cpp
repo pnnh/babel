@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 
@@ -49,12 +50,13 @@ TEST(ModelCatalogTest, ScanEnumeratesAllGgufFilesInConventionalDirectory) {
 TEST(ModelCatalogTest, TierHintClassifiesByFilenameKeyword) {
   const auto dir = isolatedModelDirectoryFor("TierHint");
   writeFile(dir / "qwen2.5-3b-instruct-q4_k_m.gguf", std::string("GGUF") + std::string(100, '\0'));
+  writeFile(dir / "qwen2.5-7b-instruct-q4_k_m.gguf", std::string("GGUF") + std::string(100, '\0'));
   writeFile(dir / "qwen2.5-14b-instruct-q4_k_m.gguf", std::string("GGUF") + std::string(100, '\0'));
   writeFile(dir / "qwen2.5-32b-instruct-q4_k_m.gguf", std::string("GGUF") + std::string(100, '\0'));
   writeFile(dir / "mystery-model.gguf", std::string("GGUF") + std::string(100, '\0'));
 
   const auto models = ModelCatalog::scan();
-  ASSERT_EQ(models.size(), 4u);
+  ASSERT_EQ(models.size(), 5u);
 
   const auto findByName = [&models](const std::string &name) -> const ModelDescriptor * {
     for (const auto &m : models) {
@@ -65,7 +67,9 @@ TEST(ModelCatalogTest, TierHintClassifiesByFilenameKeyword) {
 
   ASSERT_NE(findByName("qwen2.5-3b-instruct-q4_k_m.gguf"), nullptr);
   EXPECT_EQ(findByName("qwen2.5-3b-instruct-q4_k_m.gguf")->tierHint, ModelDescriptor::TierHint::Low);
-  EXPECT_EQ(findByName("qwen2.5-14b-instruct-q4_k_m.gguf")->tierHint, ModelDescriptor::TierHint::Medium);
+  EXPECT_EQ(findByName("qwen2.5-7b-instruct-q4_k_m.gguf")->tierHint, ModelDescriptor::TierHint::Medium);
+  // 本特性变更（research.md §5）：14B 现为新高配推荐，原 Medium 判定已不再适用。
+  EXPECT_EQ(findByName("qwen2.5-14b-instruct-q4_k_m.gguf")->tierHint, ModelDescriptor::TierHint::High);
   EXPECT_EQ(findByName("qwen2.5-32b-instruct-q4_k_m.gguf")->tierHint, ModelDescriptor::TierHint::High);
   EXPECT_EQ(findByName("mystery-model.gguf")->tierHint, ModelDescriptor::TierHint::Unknown);
 
@@ -120,11 +124,11 @@ TEST(ModelCatalogTest, RecommendedProfilesReturnFixedThreeTiers) {
     }
     if (p.tier == RecommendedModelProfile::Tier::Medium) {
       hasMedium = true;
-      EXPECT_TRUE(p.modelName.contains(QStringLiteral("14B")));
+      EXPECT_TRUE(p.modelName.contains(QStringLiteral("7B")));
     }
     if (p.tier == RecommendedModelProfile::Tier::High) {
       hasHigh = true;
-      EXPECT_TRUE(p.modelName.contains(QStringLiteral("32B")));
+      EXPECT_TRUE(p.modelName.contains(QStringLiteral("14B")));
     }
     EXPECT_FALSE(p.quantization.isEmpty());
     EXPECT_FALSE(p.approxSizeDescription.isEmpty());
@@ -133,4 +137,28 @@ TEST(ModelCatalogTest, RecommendedProfilesReturnFixedThreeTiers) {
   EXPECT_TRUE(hasLow);
   EXPECT_TRUE(hasMedium);
   EXPECT_TRUE(hasHigh);
+}
+
+// T011 [US1]：classifyTierByFileName() 公开静态方法，不经由 scan() 亦可直接调用
+// （contracts/debounce-tier-window-internal-contract.md 二）。
+TEST(ModelCatalogTest, ClassifyTierByFileNameIsPubliclyCallable) {
+  EXPECT_EQ(ModelCatalog::classifyTierByFileName(QStringLiteral("qwen2.5-3b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::TierHint::Low);
+  EXPECT_EQ(ModelCatalog::classifyTierByFileName(QStringLiteral("qwen2.5-7b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::TierHint::Medium);
+  EXPECT_EQ(ModelCatalog::classifyTierByFileName(QStringLiteral("qwen2.5-14b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::TierHint::High);
+  EXPECT_EQ(ModelCatalog::classifyTierByFileName(QStringLiteral("qwen2.5-32b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::TierHint::High);
+  EXPECT_EQ(ModelCatalog::classifyTierByFileName(QStringLiteral("mystery-model.gguf")),
+            ModelDescriptor::TierHint::Unknown);
+}
+
+// T012 [US1]：tierDebounceWindow() 四档完整映射（data-model.md 二
+// TierDebounceProfile，用户已决策数值，含 Unknown 复用 Low 档位 200ms）。
+TEST(ModelCatalogTest, TierDebounceWindowMapsEachTierToDocumentedMilliseconds) {
+  EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::Low), std::chrono::milliseconds(200));
+  EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::Medium), std::chrono::milliseconds(500));
+  EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::High), std::chrono::milliseconds(800));
+  EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::Unknown), std::chrono::milliseconds(200));
 }

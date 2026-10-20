@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -13,6 +15,7 @@
 #include "babel/src/inject/ClipboardWriter.h"
 #include "babel/src/inject/PasteInjector.h"
 #include "babel/src/session/SessionController.h"
+#include "babel/src/slowpath/DebounceScheduler.h"
 #include "babel/src/slowpath/LlmEngine.h"
 #include "babel/src/slowpath/ModelPaths.h"
 
@@ -264,4 +267,95 @@ TEST(SessionControllerTest, SecondSwitchModelCallWhileSwitchingIsIgnored) {
   ASSERT_TRUE(pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }));
 
   std::filesystem::remove_all(tempDir);
+}
+
+// T015 [US1]：switchModel() 成功后根据新模型所属档位同步调整防抖窗口时长
+// （contracts/debounce-tier-window-internal-contract.md 四/五 2/3）。依赖本机
+// 已放置的文件名含 "7b"（新中配）/"14b"（新高配）关键字的真实可加载模型文件
+// （research.md §6/quickstart.md 前置条件要求用户预先下载 Qwen2.5-7B-Instruct/
+// Qwen2.5-14B-Instruct）；本机未放置时 GTEST_SKIP()，与既有
+// SwitchModelFailureFallsBackToPreviouslyWorkingModel 用例的跳过策略一致，不
+// 影响 CI。
+TEST(SessionControllerTest, SwitchModelToMediumOrHighTierModelLengthensDebounceWindow) {
+  ensureCoreApplication();
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+  const auto modelDir = babel::slowpath::ModelPaths::conventionalModelDirectory();
+
+  std::filesystem::path mediumTierModelPath;
+  std::filesystem::path highTierModelPath;
+  std::error_code ec;
+  if (std::filesystem::exists(modelDir, ec) && !ec && std::filesystem::is_directory(modelDir, ec) && !ec) {
+    for (const auto &entry : std::filesystem::directory_iterator(modelDir, ec)) {
+      if (ec) {
+        break;
+      }
+      if (!entry.is_regular_file()) {
+        continue;
+      }
+      std::string lower = entry.path().filename().string();
+      std::transform(lower.begin(), lower.end(), lower.begin(),
+                      [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+      if (lower.find("7b") != std::string::npos && mediumTierModelPath.empty()) {
+        mediumTierModelPath = entry.path();
+      }
+      if (lower.find("14b") != std::string::npos && highTierModelPath.empty()) {
+        highTierModelPath = entry.path();
+      }
+    }
+  }
+  if (mediumTierModelPath.empty() || highTierModelPath.empty()) {
+    GTEST_SKIP() << "本地未放置文件名含 7b（新中配 Qwen2.5-7B-Instruct）/14b（新高配 "
+                    "Qwen2.5-14B-Instruct）关键字的真实可加载模型文件（research.md §6/"
+                    "quickstart.md 前置条件），跳过档位切换防抖窗口动态调整验证。";
+  }
+  {
+    // 确认两者确实可被 llama.cpp 真实加载（而非仅文件名匹配但内容损坏/占位），
+    // 否则 switchModel() 会触发级联回退，掩盖本用例要验证的窗口值变化。
+    babel::slowpath::LlmEngine mediumProbe(mediumTierModelPath);
+    babel::slowpath::LlmEngine highProbe(highTierModelPath);
+    if (!mediumProbe.modelAvailable() || !highProbe.modelAvailable()) {
+      GTEST_SKIP() << "本地 7b/14b 命名模型文件存在但未能真实加载，跳过验证。";
+    }
+  }
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  controller.setLlmEngine(
+      std::make_shared<babel::slowpath::LlmEngine>(babel::slowpath::ModelPaths::conventionalModelFilePath()));
+
+  int triggerCount = 0;
+  auto scheduler = std::make_unique<babel::slowpath::DebounceScheduler>(
+      std::chrono::milliseconds(200), [&triggerCount](const QString &) { ++triggerCount; });
+  babel::slowpath::DebounceScheduler *schedulerPtr = scheduler.get();
+  controller.setDebounceScheduler(std::move(scheduler));
+
+  // 切换至中配（文件名含 "7b"）：窗口 MUST 变为 500ms（FR-012）。
+  controller.switchModel(QString::fromStdString(mediumTierModelPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+
+  const auto t0 = std::chrono::steady_clock::now();
+  schedulerPtr->onInputChanged(QStringLiteral("a"), t0);
+  // 旧 200ms 窗口下本应已触发；新 500ms 窗口下尚未到期，不应触发。
+  schedulerPtr->tick(t0 + std::chrono::milliseconds(250));
+  EXPECT_EQ(triggerCount, 0);
+  schedulerPtr->tick(t0 + std::chrono::milliseconds(550));
+  EXPECT_EQ(triggerCount, 1);
+  schedulerPtr->markGenerationComplete();
+
+  // 切换至高配（文件名含 "14b"）：窗口 MUST 变为 800ms（FR-002/FR-012）。
+  triggerCount = 0;
+  controller.switchModel(QString::fromStdString(highTierModelPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+
+  const auto t1 = std::chrono::steady_clock::now();
+  schedulerPtr->onInputChanged(QStringLiteral("a"), t1);
+  // 旧 500ms 窗口下本应已触发；新 800ms 窗口下尚未到期，不应触发。
+  schedulerPtr->tick(t1 + std::chrono::milliseconds(600));
+  EXPECT_EQ(triggerCount, 0);
+  schedulerPtr->tick(t1 + std::chrono::milliseconds(850));
+  EXPECT_EQ(triggerCount, 1);
 }
