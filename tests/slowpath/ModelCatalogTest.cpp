@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QStringList>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -161,4 +162,71 @@ TEST(ModelCatalogTest, TierDebounceWindowMapsEachTierToDocumentedMilliseconds) {
   EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::Medium), std::chrono::milliseconds(500));
   EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::High), std::chrono::milliseconds(800));
   EXPECT_EQ(ModelCatalog::tierDebounceWindow(ModelDescriptor::TierHint::Unknown), std::chrono::milliseconds(200));
+}
+
+// T004 [Foundational]：004-speculative-decoding（contracts/model-catalog-draft-
+// pairing-internal-contract.md 二.1/二.2/二.3/二.4/二.5）。
+
+TEST(ModelCatalogTest, ClassifyDraftCandidateByFileNameMatchesDocumentedKeywords) {
+  EXPECT_EQ(ModelCatalog::classifyDraftCandidateByFileName(QStringLiteral("qwen2.5-0.5b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::DraftCandidate::Size0_5B);
+  EXPECT_EQ(ModelCatalog::classifyDraftCandidateByFileName(QStringLiteral("qwen2.5-1.5b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::DraftCandidate::Size1_5B);
+  EXPECT_EQ(ModelCatalog::classifyDraftCandidateByFileName(QStringLiteral("qwen2.5-7b-instruct-q4_k_m.gguf")),
+            ModelDescriptor::DraftCandidate::None);
+  EXPECT_EQ(ModelCatalog::classifyDraftCandidateByFileName(QStringLiteral("mystery-model.gguf")),
+            ModelDescriptor::DraftCandidate::None);
+}
+
+TEST(ModelCatalogTest, ClassifyDraftCandidateByFileNameDoesNotInterfereWithClassifyTierByFileName) {
+  const QStringList fileNames = {
+      QStringLiteral("qwen2.5-3b-instruct-q4_k_m.gguf"),
+      QStringLiteral("qwen2.5-7b-instruct-q4_k_m.gguf"),
+      QStringLiteral("qwen2.5-14b-instruct-q4_k_m.gguf"),
+      QStringLiteral("qwen2.5-32b-instruct-q4_k_m.gguf"),
+  };
+  const std::vector<ModelDescriptor::TierHint> expectedTiers = {
+      ModelDescriptor::TierHint::Low,
+      ModelDescriptor::TierHint::Medium,
+      ModelDescriptor::TierHint::High,
+      ModelDescriptor::TierHint::High,
+  };
+  for (int i = 0; i < fileNames.size(); ++i) {
+    // 先调用新方法，再调用既有方法，确认既有方法的分类结果不受新方法引入影响
+    // （research.md §5.1 回归断言）。
+    (void)ModelCatalog::classifyDraftCandidateByFileName(fileNames[i]);
+    EXPECT_EQ(ModelCatalog::classifyTierByFileName(fileNames[i]), expectedTiers[static_cast<std::size_t>(i)])
+        << fileNames[i].toStdString();
+  }
+}
+
+TEST(ModelCatalogTest, RecommendedDraftProfilesReturnsFixedTwoCandidates) {
+  const auto profiles = ModelCatalog::recommendedDraftProfiles();
+  ASSERT_EQ(profiles.size(), 2u);
+
+  bool hasSize0_5B = false, hasSize1_5B = false;
+  for (const auto &p : profiles) {
+    if (p.size == ModelDescriptor::DraftCandidate::Size0_5B) {
+      hasSize0_5B = true;
+      EXPECT_EQ(p.modelName, QStringLiteral("Qwen2.5-0.5B-Instruct"));
+    }
+    if (p.size == ModelDescriptor::DraftCandidate::Size1_5B) {
+      hasSize1_5B = true;
+      EXPECT_EQ(p.modelName, QStringLiteral("Qwen2.5-1.5B-Instruct"));
+    }
+    EXPECT_FALSE(p.quantization.isEmpty());
+    EXPECT_FALSE(p.approxSizeDescription.isEmpty());
+  }
+  EXPECT_TRUE(hasSize0_5B);
+  EXPECT_TRUE(hasSize1_5B);
+}
+
+TEST(ModelCatalogTest, PairedDraftCandidateMapsLowToNoneMediumToSize0_5BHighToSize1_5B) {
+  EXPECT_EQ(ModelCatalog::pairedDraftCandidate(ModelDescriptor::TierHint::Low), ModelDescriptor::DraftCandidate::None);
+  EXPECT_EQ(ModelCatalog::pairedDraftCandidate(ModelDescriptor::TierHint::Unknown),
+            ModelDescriptor::DraftCandidate::None);
+  EXPECT_EQ(ModelCatalog::pairedDraftCandidate(ModelDescriptor::TierHint::Medium),
+            ModelDescriptor::DraftCandidate::Size0_5B);
+  EXPECT_EQ(ModelCatalog::pairedDraftCandidate(ModelDescriptor::TierHint::High),
+            ModelDescriptor::DraftCandidate::Size1_5B);
 }

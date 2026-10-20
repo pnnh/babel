@@ -85,6 +85,83 @@ Rectangle {
             }
         }
 
+        // 004-speculative-decoding（T019，FR-004/FR-007，contracts/qml-cpp-
+        // session-interface-increment.md 一）：草稿模型候选规格展示，复用既有
+        // "推荐档位" Repeater 模式。
+        Text {
+            text: "草稿模型（投机解码加速，可选）"
+            color: "#aaaaaa"
+            font.pixelSize: 13
+        }
+
+        Repeater {
+            model: SessionController.recommendedDraftProfiles
+            delegate: Text {
+                width: settingsPanel.width - 24
+                wrapMode: Text.WordWrap
+                color: "#aaaaaa"
+                font.pixelSize: 12
+                text: "· " + modelData.modelName + "（" + modelData.quantization
+                      + "，" + modelData.approxSizeDescription + "）"
+            }
+        }
+
+        Text {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: "下载以上任一候选规格即可被自动识别并搭配当前目标模型档位使用，无需手动指定搭配关系"
+            color: "#888888"
+            font.pixelSize: 11
+        }
+
+        // 事后修订（用户决策）：实测发现当前实现在本机反而显著变慢（详见
+        // quickstart.md"实测记录"），故改为默认关闭的实验性开关，不自动启用；
+        // 纯 QtQuick 实现（本文件全程未 import QtQuick.Controls），不新增依赖。
+        Row {
+            spacing: 8
+            Rectangle {
+                id: speculativeToggle
+                width: 36
+                height: 20
+                radius: 10
+                anchors.verticalCenter: parent.verticalCenter
+                color: SessionController.speculativeDecodingEnabled ? "#4caf50" : "#555555"
+
+                Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    color: "#ffffff"
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: SessionController.speculativeDecodingEnabled ? parent.width - width - 2 : 2
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: SessionController.speculativeDecodingEnabled = !SessionController.speculativeDecodingEnabled
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "投机解码加速（实验性，默认关闭）"
+                color: "#aaaaaa"
+                font.pixelSize: 12
+            }
+        }
+
+        // 004-speculative-decoding（T024，FR-006，contracts/qml-cpp-session-
+        // interface-increment.md 一）：投机解码是否启用及原因提示，复用既有
+        // fallbackNoticeText 展示样式。
+        Text {
+            width: parent.width
+            visible: SessionController.speculativeDecodingNoticeText.length > 0
+            text: SessionController.speculativeDecodingNoticeText
+            color: "#ffcc66"
+            font.pixelSize: 13
+            wrapMode: Text.WordWrap
+        }
+
+
         Text {
             text: "本地模型目录文件（点选切换，耗时操作，热切换期间慢流暂不可用）"
             color: "#aaaaaa"

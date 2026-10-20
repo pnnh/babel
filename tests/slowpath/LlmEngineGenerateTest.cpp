@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
+#include <fstream>
 
 #include "babel/src/slowpath/LlmEngine.h"
 #include "babel/src/slowpath/ModelPaths.h"
@@ -159,4 +163,141 @@ TEST(LlmEngineGenerateTest, GenerateOnGrammarStallTerminatesEarlyWithoutCrashing
     }
   }
 }
+
+// T015 [US1]：004-speculative-decoding（contracts/llm-engine-speculative-
+// internal-contract.md 二，FR-001/FR-003/FR-006）。
+
+namespace {
+
+/// 在约定模型目录下查找文件名含 "0.5b"/"0-5b" 或 "1.5b"/"1-5b" 关键字的真实
+/// 草稿模型文件（research.md §5.1/§5.3，用户本轮尚未下载，见 quickstart.md 前
+/// 置条件）；本机未放置时返回空路径，供调用方 GTEST_SKIP()。
+std::filesystem::path findRealDraftModelFile() {
+  const auto dir = babel::slowpath::ModelPaths::conventionalModelDirectory();
+  std::error_code ec;
+  if (!std::filesystem::exists(dir, ec) || ec || !std::filesystem::is_directory(dir, ec) || ec) {
+    return {};
+  }
+  for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
+    if (ec) {
+      break;
+    }
+    if (!entry.is_regular_file()) {
+      continue;
+    }
+    std::string lower = entry.path().filename().string();
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                    [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    if (lower.find("0.5b") != std::string::npos || lower.find("0-5b") != std::string::npos ||
+        lower.find("1.5b") != std::string::npos || lower.find("1-5b") != std::string::npos) {
+      return entry.path();
+    }
+  }
+  return {};
+}
+
+}  // namespace
+
+TEST(LlmEngineGenerateTest, GenerateWithDraftModelProducesSemanticallyEquivalentOutputToSingleModelPath) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const auto draftModelPath = findRealDraftModelFile();
+  if (draftModelPath.empty()) {
+    GTEST_SKIP() << "本地未放置真实草稿模型文件（Qwen2.5-0.5B-Instruct/Qwen2.5-1.5B-Instruct，"
+                    "research.md §5.1/§5.3，用户本轮尚未下载），跳过投机解码语义等价性验证，"
+                    "见 quickstart.md 前置条件。";
+  }
+
+  babel::slowpath::LlmEngine singleModelEngine(modelPath);
+  babel::slowpath::LlmEngine speculativeEngine(modelPath, draftModelPath);
+  if (!singleModelEngine.modelAvailable() || !speculativeEngine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实目标模型文件，跳过投机解码语义等价性验证。";
+  }
+
+  const QString input = QStringLiteral("wo today bushi very e");
+  const QString singleModelOutput = singleModelEngine.generate(input);
+  const QString speculativeOutput = speculativeEngine.generate(input);
+  // FR-001"语义等价"：自动化断言至少确认均非空且不含标注符号，措辞级差异
+  // （采样随机性导致）留待人工复核，不强制逐字节相等。
+  EXPECT_FALSE(singleModelOutput.isEmpty());
+  EXPECT_FALSE(speculativeOutput.isEmpty());
+  EXPECT_FALSE(speculativeOutput.contains(QStringLiteral("⟦")));
+  EXPECT_FALSE(speculativeOutput.contains(QStringLiteral("⟧")));
+  EXPECT_FALSE(speculativeOutput.contains(QStringLiteral("|")));
+}
+
+TEST(LlmEngineGenerateTest, GenerateWithDraftModelStillEnforcesGrammarConstraintOnBothSides) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const auto draftModelPath = findRealDraftModelFile();
+  if (draftModelPath.empty()) {
+    GTEST_SKIP() << "本地未放置真实草稿模型文件，跳过投机解码 GBNF 双侧约束验证，"
+                    "见 quickstart.md 前置条件。";
+  }
+
+  babel::slowpath::LlmEngine engine(modelPath, draftModelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实目标模型文件，跳过投机解码 GBNF 双侧约束验证。";
+  }
+
+  // 复用既有 003 高密度标注测试样例（GenerateOnHighAmbiguityDensityInputNever-
+  // LeaksAnnotationSymbols）。
+  const QString highDensityInput = QStringLiteral(
+      "我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭，"
+      "然后⟦shi:是 0.40|时 0.30|事 0.15|市 0.08|式 0.05|使 0.02⟧的时候觉得"
+      "⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧得太饱了。");
+  const QString output = engine.generate(highDensityInput);
+  EXPECT_FALSE(output.contains(QStringLiteral("⟦")));
+  EXPECT_FALSE(output.contains(QStringLiteral("⟧")));
+  EXPECT_FALSE(output.contains(QStringLiteral("|")));
+}
+
+TEST(LlmEngineGenerateTest, GenerateWithMissingDraftModelPathFallsBackSilentlyToSingleModelPath) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const std::filesystem::path missingDraftPath =
+      std::filesystem::temp_directory_path() / "babel_test_missing_draft_model.gguf";
+  std::filesystem::remove(missingDraftPath);  // 确保确实不存在
+
+  babel::slowpath::LlmEngine engine(modelPath, missingDraftPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实目标模型文件，跳过草稿模型路径缺失静默降级验证。";
+  }
+  // FR-006：草稿模型路径不存在 MUST NOT 影响目标模型本身的加载结果。
+  EXPECT_TRUE(engine.modelAvailable());
+  EXPECT_NO_THROW({
+    const QString output = engine.generate(QStringLiteral("wo today bushi very e"));
+    EXPECT_FALSE(output.isEmpty());
+  });
+}
+
+TEST(LlmEngineGenerateTest, GenerateWithCorruptDraftModelFileFallsBackSilentlyToSingleModelPath) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  // Edge Cases 第二条：文件名匹配草稿关键字但内容损坏（非法 GGUF 头）。
+  const std::filesystem::path corruptDraftPath =
+      std::filesystem::temp_directory_path() / "qwen2.5-0.5b-instruct-corrupt-test.gguf";
+  {
+    std::ofstream ofs(corruptDraftPath, std::ios::binary);
+    ofs << "NOTAGGUFFILE_______________________";
+  }
+
+  babel::slowpath::LlmEngine engine(modelPath, corruptDraftPath);
+  if (!engine.modelAvailable()) {
+    std::filesystem::remove(corruptDraftPath);
+    GTEST_SKIP() << "本地未放置真实目标模型文件，跳过草稿模型文件损坏静默降级验证。";
+  }
+  // FR-006：草稿模型文件损坏 MUST NOT 影响目标模型本身的加载结果。
+  EXPECT_TRUE(engine.modelAvailable());
+  EXPECT_NO_THROW({
+    const QString output = engine.generate(QStringLiteral("wo today bushi very e"));
+    EXPECT_FALSE(output.isEmpty());
+  });
+  std::filesystem::remove(corruptDraftPath);
+}
+
 

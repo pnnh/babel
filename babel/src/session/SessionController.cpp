@@ -80,13 +80,47 @@ std::vector<babel::fastpath::DictionaryEntry> loadProductionDictionaryEntries() 
   return entries;
 }
 
+/// 004-speculative-decoding（T012，contracts/model-catalog-draft-pairing-
+/// internal-contract.md 三）：与 SessionController::pairedDraftModelPathForTier()
+/// 共享的核心查表逻辑，提取为自由函数以便 switchModel() 后台线程直接调用（不
+/// 跨线程访问 SessionController 实例本身，`this` 指针/成员状态均不涉及，纯
+/// 静态 ModelCatalog 查表逻辑，线程安全）。
+///
+/// 事后修订（用户决策）：新增 `speculativeDecodingEnabled` 参数，默认关闭时
+/// 恒返回空路径，即使已存在匹配的草稿模型文件——因实测当前实现在本机反而显
+/// 著变慢（见 quickstart.md"实测记录"），故改为用户需在设置页面显式开启后才
+/// 会实际启用投机解码，而非"检测到草稿模型文件即自动启用"。
+std::filesystem::path lookupPairedDraftModelPath(babel::slowpath::ModelDescriptor::TierHint tier,
+                                                  bool speculativeDecodingEnabled) {
+  if (!speculativeDecodingEnabled) {
+    return {};
+  }
+  if (tier != babel::slowpath::ModelDescriptor::TierHint::Medium &&
+      tier != babel::slowpath::ModelDescriptor::TierHint::High) {
+    return {};
+  }
+  const auto neededDraft = babel::slowpath::ModelCatalog::pairedDraftCandidate(tier);
+  for (const auto &descriptor : babel::slowpath::ModelCatalog::scan()) {
+    if (babel::slowpath::ModelCatalog::classifyDraftCandidateByFileName(descriptor.fileName) == neededDraft) {
+      return descriptor.filePath;
+    }
+  }
+  return {};
+}
+
 }  // namespace
 
 void SessionController::bootstrapPlatformDefaults() {
   m_fastCorrector = std::make_unique<babel::fastpath::FastCorrector>(loadProductionDictionaryEntries());
 
   const auto defaultModelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
-  auto llmEngine = std::make_shared<babel::slowpath::LlmEngine>(defaultModelPath);
+  // 004-speculative-decoding（T013，contracts/llm-engine-speculative-internal-
+  // contract.md 四）：默认（低配）档位查表得到草稿模型路径（恒为空路径，
+  // FR-005/FR-009），一并传给 LlmEngine 构造函数。
+  const auto defaultModelFileName = QString::fromStdString(defaultModelPath.filename().string());
+  const auto defaultTier = babel::slowpath::ModelCatalog::classifyTierByFileName(defaultModelFileName);
+  const auto defaultDraftModelPath = pairedDraftModelPathForTier(defaultTier);
+  auto llmEngine = std::make_shared<babel::slowpath::LlmEngine>(defaultModelPath, defaultDraftModelPath);
   m_modelAvailable = llmEngine->modelAvailable();
   m_llmEngine = std::move(llmEngine);
   m_modelRuntimeState.currentModelPath = defaultModelPath;
@@ -94,12 +128,12 @@ void SessionController::bootstrapPlatformDefaults() {
     m_modelRuntimeState.fallbackHistory.push_back(defaultModelPath);
   }
   emit modelAvailableChanged();
+  // 004-speculative-decoding（T023）：默认档位提示文案计算（Low/Unknown 恒为空）。
+  updateSpeculativeDecodingNoticeText(defaultTier);
 
   // 防抖窗口按当前模型档位动态确定（FR-010/FR-011，contracts/debounce-tier-
   // window-internal-contract.md 四"启动调用点"）：默认低配模型恒为 Low/200ms，
   // 与 001/002 既有体验一致；复用 ModelCatalog 分档逻辑，不新增平行判断机制。
-  const auto defaultModelFileName = QString::fromStdString(defaultModelPath.filename().string());
-  const auto defaultTier = babel::slowpath::ModelCatalog::classifyTierByFileName(defaultModelFileName);
   const auto defaultDebounceWindow = babel::slowpath::ModelCatalog::tierDebounceWindow(defaultTier);
   m_debounceScheduler = std::make_unique<babel::slowpath::DebounceScheduler>(
       defaultDebounceWindow, [this](const QString &snapshot) { onSlowPathTriggered(snapshot); });
@@ -228,6 +262,96 @@ QVariantList SessionController::recommendedProfilesVariant() const {
   return list;
 }
 
+std::vector<babel::slowpath::RecommendedDraftModelProfile> SessionController::recommendedDraftProfiles() const {
+  // 004-speculative-decoding（T018，contracts/qml-cpp-session-interface-
+  // increment.md 一）：直接转发 ModelCatalog::recommendedDraftProfiles()。
+  return babel::slowpath::ModelCatalog::recommendedDraftProfiles();
+}
+
+QVariantList SessionController::recommendedDraftProfilesVariant() const {
+  QVariantList list;
+  for (const auto &profile : recommendedDraftProfiles()) {
+    QVariantMap entry;
+    QString sizeStr;
+    switch (profile.size) {
+      case babel::slowpath::ModelDescriptor::DraftCandidate::Size0_5B:
+        sizeStr = QStringLiteral("Size0_5B");
+        break;
+      case babel::slowpath::ModelDescriptor::DraftCandidate::Size1_5B:
+        sizeStr = QStringLiteral("Size1_5B");
+        break;
+      case babel::slowpath::ModelDescriptor::DraftCandidate::None:
+      default:
+        sizeStr = QStringLiteral("None");
+        break;
+    }
+    entry[QStringLiteral("size")] = sizeStr;
+    entry[QStringLiteral("modelName")] = profile.modelName;
+    entry[QStringLiteral("quantization")] = profile.quantization;
+    entry[QStringLiteral("approxSizeDescription")] = profile.approxSizeDescription;
+    list.push_back(entry);
+  }
+  return list;
+}
+
+std::filesystem::path SessionController::pairedDraftModelPathForTier(
+    babel::slowpath::ModelDescriptor::TierHint tier) const {
+  // 004-speculative-decoding（T012，contracts/model-catalog-draft-pairing-
+  // internal-contract.md 三，FR-005/FR-009）：转发匿名命名空间内与 switchModel()
+  // 后台线程共享的核心查表逻辑，避免重复定义（Low/Unknown 档位或
+  // m_speculativeDecodingEnabled == false 时恒返回空路径，不调用
+  // ModelCatalog::scan()，不产生任何额外文件系统开销）。
+  return lookupPairedDraftModelPath(tier, m_speculativeDecodingEnabled);
+}
+
+void SessionController::updateSpeculativeDecodingNoticeText(babel::slowpath::ModelDescriptor::TierHint tier) {
+  // 004-speculative-decoding（T023，data-model.md 三/四）：Low/Unknown 恒为空
+  // 字符串（FR-009，不展示任何提示）。
+  //
+  // 事后修订（用户决策）：Medium/High 档位下，提示文案需先区分"实验性功能开关
+  // 是否已开启"（m_speculativeDecodingEnabled），再区分"开启后是否已配置对应
+  // 草稿模型文件"——两者分别对应不同的用户行动指引（前者需去设置页面开启开关，
+  // 后者需去下载对应草稿模型文件），故此处不能直接调用会因开关关闭而恒返回
+  // 空路径的 pairedDraftModelPathForTier()，须分别判断。
+  QString noticeText;
+  if (tier == babel::slowpath::ModelDescriptor::TierHint::Medium ||
+      tier == babel::slowpath::ModelDescriptor::TierHint::High) {
+    if (!m_speculativeDecodingEnabled) {
+      noticeText = QStringLiteral("投机解码为实验性功能，默认未启用（可在本页面开启尝试）");
+    } else {
+      const auto draftPath = pairedDraftModelPathForTier(tier);
+      if (draftPath.empty()) {
+        noticeText = QStringLiteral("已开启投机解码，但未检测到匹配的草稿模型文件，当前仍使用普通生成路径");
+      }
+      // 已配置时 noticeText 保持为空字符串（无需提示，`data-model.md` 四已注明
+      // "可选地展示正向提示"，本实现选择不展示以保持设置页面简洁）。
+    }
+  }
+  if (noticeText != m_speculativeDecodingNoticeText) {
+    m_speculativeDecodingNoticeText = noticeText;
+    emit speculativeDecodingNoticeTextChanged();
+  }
+}
+
+void SessionController::setSpeculativeDecodingEnabled(bool enabled) {
+  if (m_speculativeDecodingEnabled == enabled) {
+    return;
+  }
+  m_speculativeDecodingEnabled = enabled;
+  emit speculativeDecodingEnabledChanged();
+
+  // 立即按新开关状态重新计算当前档位的提示文案；若当前已有模型成功加载，
+  // 复用既有 switchModel() 热重载流程对当前模型路径"重新加载自己"，使开关
+  // 状态对下一次慢流生成立即生效（而非要求用户手动再切换一次模型）。
+  const auto currentFileName = QString::fromStdString(m_modelRuntimeState.currentModelPath.filename().string());
+  const auto currentTier = babel::slowpath::ModelCatalog::classifyTierByFileName(currentFileName);
+  updateSpeculativeDecodingNoticeText(currentTier);
+  if (m_modelAvailable && !m_modelRuntimeState.currentModelPath.empty()) {
+    switchModel(QString::fromStdString(m_modelRuntimeState.currentModelPath.string()));
+  }
+}
+
+
 void SessionController::openSettings() {
   m_settingsVisible = true;
   emit settingsVisibleChanged();
@@ -262,8 +386,18 @@ void SessionController::switchModel(const QString &filePath) {
   }
 
   QPointer<SessionController> self(this);
-  std::thread([self, targetPath, originalFileName, fallbackCandidates]() {
-    auto newEngine = std::make_shared<babel::slowpath::LlmEngine>(targetPath);
+  const bool speculativeDecodingEnabled = m_speculativeDecodingEnabled;
+  std::thread([self, targetPath, originalFileName, fallbackCandidates, speculativeDecodingEnabled]() {
+    // 004-speculative-decoding（T014，contracts/llm-engine-speculative-internal-
+    // contract.md 四）：对初次尝试加载的 targetPath 与级联回退候选分别查表得到
+    // 草稿模型路径一并传给 LlmEngine 构造函数；查表仅依赖静态 ModelCatalog 方法
+    // （lookupPairedDraftModelPath()，见本文件匿名命名空间），不跨线程访问
+    // SessionController 实例本身——`speculativeDecodingEnabled` 已在主线程按值
+    // 拷贝进捕获列表，而非在本线程读取 `self->m_speculativeDecodingEnabled`。
+    const auto targetFileName = QString::fromStdString(targetPath.filename().string());
+    const auto targetTier = babel::slowpath::ModelCatalog::classifyTierByFileName(targetFileName);
+    const auto targetDraftPath = lookupPairedDraftModelPath(targetTier, speculativeDecodingEnabled);
+    auto newEngine = std::make_shared<babel::slowpath::LlmEngine>(targetPath, targetDraftPath);
     bool success = newEngine->modelAvailable();
     std::filesystem::path finalPath = targetPath;
     QString noticeText;
@@ -273,7 +407,10 @@ void SessionController::switchModel(const QString &filePath) {
         if (candidatePath == targetPath) {
           continue;
         }
-        auto candidateEngine = std::make_shared<babel::slowpath::LlmEngine>(candidatePath);
+        const auto candidateFileName0 = QString::fromStdString(candidatePath.filename().string());
+        const auto candidateTier = babel::slowpath::ModelCatalog::classifyTierByFileName(candidateFileName0);
+        const auto candidateDraftPath = lookupPairedDraftModelPath(candidateTier, speculativeDecodingEnabled);
+        auto candidateEngine = std::make_shared<babel::slowpath::LlmEngine>(candidatePath, candidateDraftPath);
         if (candidateEngine->modelAvailable()) {
           newEngine = candidateEngine;
           success = true;
@@ -323,6 +460,14 @@ void SessionController::applyModelSwitchResult(std::shared_ptr<babel::slowpath::
       const auto finalModelFileName = QString::fromStdString(finalModelPath.filename().string());
       const auto tier = babel::slowpath::ModelCatalog::classifyTierByFileName(finalModelFileName);
       m_debounceScheduler->setDebounceWindow(babel::slowpath::ModelCatalog::tierDebounceWindow(tier));
+    }
+    // 004-speculative-decoding（T023，data-model.md 三/四，Edge Cases 第一条）：
+    // 切换成功后按新模型所属档位重新计算投机解码提示文案，确保切换档位后自动
+    // 重新匹配、不沿用旧档位状态。
+    {
+      const auto finalModelFileName = QString::fromStdString(finalModelPath.filename().string());
+      const auto tier = babel::slowpath::ModelCatalog::classifyTierByFileName(finalModelFileName);
+      updateSpeculativeDecodingNoticeText(tier);
     }
   }
   m_modelRuntimeState.lastFallbackNotice = noticeText;

@@ -124,6 +124,58 @@ std::chrono::milliseconds ModelCatalog::tierDebounceWindow(ModelDescriptor::Tier
   }
 }
 
+ModelDescriptor::DraftCandidate ModelCatalog::classifyDraftCandidateByFileName(const QString &fileName) {
+  // 004-speculative-decoding（research.md §5.1，contracts/model-catalog-draft-
+  // pairing-internal-contract.md 二.1）：与 classifyTierByFileName() 同构的独立
+  // 分类方法，文件名子串匹配不区分大小写；均不匹配 -> None。已核实（research.md
+  // §5.1 表格）两档候选草稿文件名均不会命中 classifyTierByFileName() 既有四个
+  // 分支，二者互不冲突，故本方法不修改、不复用后者任何分支逻辑。
+  const std::string lower = toLower(fileName.toStdString());
+  if (lower.find("0.5b") != std::string::npos || lower.find("0-5b") != std::string::npos) {
+    return ModelDescriptor::DraftCandidate::Size0_5B;
+  }
+  if (lower.find("1.5b") != std::string::npos || lower.find("1-5b") != std::string::npos) {
+    return ModelDescriptor::DraftCandidate::Size1_5B;
+  }
+  return ModelDescriptor::DraftCandidate::None;
+}
+
+std::vector<RecommendedDraftModelProfile> ModelCatalog::recommendedDraftProfiles() {
+  // 004-speculative-decoding（data-model.md 二，FR-004）：固定两档静态数据，不
+  // 依赖文件系统状态。approxSizeDescription 按实际 GGUF Q4_K_M 量化文件的典型
+  // 大小估算（0.5B/1.5B 参数规模的合理量级，不编造夸张数值）。
+  return {
+      RecommendedDraftModelProfile{
+          ModelDescriptor::DraftCandidate::Size0_5B,
+          QStringLiteral("Qwen2.5-0.5B-Instruct"),
+          QStringLiteral("GGUF Q4_K_M"),
+          QStringLiteral("约 0.4GB"),
+      },
+      RecommendedDraftModelProfile{
+          ModelDescriptor::DraftCandidate::Size1_5B,
+          QStringLiteral("Qwen2.5-1.5B-Instruct"),
+          QStringLiteral("GGUF Q4_K_M"),
+          QStringLiteral("约 1GB"),
+      },
+  };
+}
+
+ModelDescriptor::DraftCandidate ModelCatalog::pairedDraftCandidate(ModelDescriptor::TierHint targetTier) {
+  // 004-speculative-decoding（research.md §5.3 用户决策：方案①，contracts/
+  // model-catalog-draft-pairing-internal-contract.md 三）：固定查表，MUST NOT
+  // 考虑候选方案②～④。
+  switch (targetTier) {
+    case ModelDescriptor::TierHint::Medium:
+      return ModelDescriptor::DraftCandidate::Size0_5B;
+    case ModelDescriptor::TierHint::High:
+      return ModelDescriptor::DraftCandidate::Size1_5B;
+    case ModelDescriptor::TierHint::Low:
+    case ModelDescriptor::TierHint::Unknown:
+    default:
+      return ModelDescriptor::DraftCandidate::None;
+  }
+}
+
 std::vector<RecommendedModelProfile> ModelCatalog::recommendedProfiles() {
   // FR-012 原文数值（data-model.md §7），固定说明性数据，不涉及本阶段新决策。
   return {

@@ -171,6 +171,26 @@ TEST(SessionControllerTest, RecommendedProfilesExposesFixedThreeTiers) {
   EXPECT_EQ(profiles.size(), 3);
 }
 
+// T020 [US2]：004-speculative-decoding（contracts/qml-cpp-session-interface-
+// increment.md 一，FR-004）。
+TEST(SessionControllerTest, RecommendedDraftProfilesExposesFixedTwoCandidates) {
+  ensureCoreApplication();
+  SessionController controller;
+  const auto profiles = controller.recommendedDraftProfiles();
+  ASSERT_EQ(profiles.size(), 2u);
+  bool hasSize0_5B = false, hasSize1_5B = false;
+  for (const auto &p : profiles) {
+    if (p.modelName == QStringLiteral("Qwen2.5-0.5B-Instruct")) {
+      hasSize0_5B = true;
+    }
+    if (p.modelName == QStringLiteral("Qwen2.5-1.5B-Instruct")) {
+      hasSize1_5B = true;
+    }
+  }
+  EXPECT_TRUE(hasSize0_5B);
+  EXPECT_TRUE(hasSize1_5B);
+}
+
 TEST(SessionControllerTest, SwitchModelToValidModelUpdatesStateAndEmitsCompletion) {
   ensureCoreApplication();
   const auto tempDir = std::filesystem::temp_directory_path() / "babel_switchmodel_test_valid";
@@ -359,3 +379,225 @@ TEST(SessionControllerTest, SwitchModelToMediumOrHighTierModelLengthensDebounceW
   schedulerPtr->tick(t1 + std::chrono::milliseconds(850));
   EXPECT_EQ(triggerCount, 1);
 }
+
+// T025 [US3]：004-speculative-decoding（data-model.md 三/四，FR-006/FR-009，
+// Edge Cases 第一条，quickstart.md 验证场景二/三）。
+
+namespace {
+
+/// 为每个测试用例设置独一无二的 applicationName，使
+/// ModelPaths::conventionalModelDirectory() 解析到隔离的临时目录，避免测试
+/// 相互干扰、也避免误写入真实用户数据目录（与 ModelCatalogTest.cpp 的
+/// isolatedModelDirectoryFor() 同构）。
+std::filesystem::path isolatedSpeculativeTestModelDirectoryFor(const char *testCaseName) {
+  QCoreApplication::setApplicationName(QStringLiteral("BabelSpeculativeDecodingTest_%1").arg(testCaseName));
+  const auto dir = babel::slowpath::ModelPaths::conventionalModelDirectory();
+  std::filesystem::remove_all(dir);
+  std::filesystem::create_directories(dir);
+  return dir;
+}
+
+/// 获取真实可加载的低配模型文件路径（生产环境 "Babel" 约定目录下的
+/// Qwen2.5-3B-Instruct，本机已放置真实权重）。`classifyTierByFileName()` 仅按
+/// 文件名子串判定档位、与文件实际内容/参数规模无关（既有既定设计，本特性未
+/// 变更该既有行为），故可将其符号链接为"文件名含中/高配关键字"的测试替身，
+/// 既能被 llama.cpp 真实加载（modelAvailable()==true）又不需下载额外的真实
+/// 7B/14B 测试夹具。
+std::filesystem::path realLoadableLowTierModelPathForSymlink() {
+  const auto previousAppName = QCoreApplication::applicationName();
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+  const auto path = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  QCoreApplication::setApplicationName(previousAppName);
+  return path;
+}
+
+}  // namespace
+
+TEST(SessionControllerTest, SpeculativeDecodingNoticeTextEmptyForLowTierDefaultModel) {
+  ensureCoreApplication();
+  const auto realLowTierPath = realLoadableLowTierModelPathForSymlink();
+  {
+    babel::slowpath::LlmEngine probe(realLowTierPath);
+    if (!probe.modelAvailable()) {
+      GTEST_SKIP() << "本地未放置真实低配模型文件（Qwen2.5-3B-Instruct），跳过投机解码提示文案验证。";
+    }
+  }
+
+  const auto dir = isolatedSpeculativeTestModelDirectoryFor("LowTierEmpty");
+  const auto lowTierTestPath = dir / "qwen2.5-3b-instruct-symlink-test.gguf";
+  std::error_code symlinkEc;
+  std::filesystem::create_symlink(realLowTierPath, lowTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  controller.switchModel(QString::fromStdString(lowTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  // FR-009：低配档位恒为空字符串，不展示任何提示。
+  EXPECT_TRUE(controller.speculativeDecodingNoticeText().isEmpty());
+
+  std::filesystem::remove_all(dir);
+}
+
+TEST(SessionControllerTest, SpeculativeDecodingNoticeTextNonEmptyWhenDraftModelMissingForMediumOrHighTier) {
+  ensureCoreApplication();
+  const auto realLowTierPath = realLoadableLowTierModelPathForSymlink();
+  {
+    babel::slowpath::LlmEngine probe(realLowTierPath);
+    if (!probe.modelAvailable()) {
+      GTEST_SKIP() << "本地未放置真实低配模型文件（Qwen2.5-3B-Instruct），跳过投机解码提示文案验证。";
+    }
+  }
+
+  const auto dir = isolatedSpeculativeTestModelDirectoryFor("DraftMissing");
+  // 文件名含 "7b" 关键字 -> 分类为 Medium；隔离目录中不放置任何草稿模型文件。
+  const auto mediumTierTestPath = dir / "qwen2.5-7b-instruct-symlink-test.gguf";
+  std::error_code symlinkEc;
+  std::filesystem::create_symlink(realLowTierPath, mediumTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  // 事后修订（用户决策）：显式开启开关，确保本用例验证的是"未配置草稿模型
+  // 文件"这一原因导致的提示，而非默认关闭开关本身导致的提示（两者文案不同）。
+  controller.setSpeculativeDecodingEnabled(true);
+  controller.switchModel(QString::fromStdString(mediumTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  // FR-006：中配档位未配置对应草稿模型文件时为非空提示。
+  EXPECT_FALSE(controller.speculativeDecodingNoticeText().isEmpty());
+
+  std::filesystem::remove_all(dir);
+}
+
+TEST(SessionControllerTest, SpeculativeDecodingNoticeTextClearsWhenMatchingDraftModelFilePresent) {
+  ensureCoreApplication();
+  const auto realLowTierPath = realLoadableLowTierModelPathForSymlink();
+  {
+    babel::slowpath::LlmEngine probe(realLowTierPath);
+    if (!probe.modelAvailable()) {
+      GTEST_SKIP() << "本地未放置真实低配模型文件（Qwen2.5-3B-Instruct），跳过投机解码提示文案验证。";
+    }
+  }
+
+  const auto dir = isolatedSpeculativeTestModelDirectoryFor("DraftPresent");
+  const auto mediumTierTestPath = dir / "qwen2.5-7b-instruct-symlink-test.gguf";
+  std::error_code symlinkEc;
+  std::filesystem::create_symlink(realLowTierPath, mediumTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+  // 草稿模型文件（Medium 搭配 Size0_5B）：仅需文件名匹配 + 合法 GGUF 文件头
+  // 魔数即可被 ModelCatalog::scan()/classifyDraftCandidateByFileName() 识别为
+  // "已配置"，speculativeDecodingNoticeText 的计算不依赖该文件是否真实可加载
+  // （该文件本身是否可加载由 LlmEngine::tryLoadModel() 静默降级处理，二者相
+  // 互独立，data-model.md 三）。
+  writeFakeFile(dir / "qwen2.5-0.5b-instruct-placeholder.gguf", std::string("GGUF") + std::string(64, '\0'));
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  // 事后修订（用户决策）：实验性开关默认 false，须显式开启后"已配置草稿模型
+  // 则提示清空"的断言才成立；未开启时即使文件存在也会提示"未启用"。
+  controller.setSpeculativeDecodingEnabled(true);
+  controller.switchModel(QString::fromStdString(mediumTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  EXPECT_TRUE(controller.speculativeDecodingNoticeText().isEmpty());
+
+  std::filesystem::remove_all(dir);
+}
+
+TEST(SessionControllerTest, SwitchingTargetModelTierAutomaticallyRematchesDraftModel) {
+  ensureCoreApplication();
+  const auto realLowTierPath = realLoadableLowTierModelPathForSymlink();
+  {
+    babel::slowpath::LlmEngine probe(realLowTierPath);
+    if (!probe.modelAvailable()) {
+      GTEST_SKIP() << "本地未放置真实低配模型文件（Qwen2.5-3B-Instruct），跳过投机解码提示文案验证。";
+    }
+  }
+
+  const auto dir = isolatedSpeculativeTestModelDirectoryFor("TierSwitchRematch");
+  const auto mediumTierTestPath = dir / "qwen2.5-7b-instruct-symlink-test.gguf";
+  const auto highTierTestPath = dir / "qwen2.5-14b-instruct-symlink-test.gguf";
+  std::error_code symlinkEc;
+  std::filesystem::create_symlink(realLowTierPath, mediumTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+  std::filesystem::create_symlink(realLowTierPath, highTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+  // 仅为 Medium 档位放置匹配的草稿模型文件（Size0_5B），High 档位（搭配
+  // Size1_5B）故意不放置，驱动"切换档位后自动重新匹配"断言。
+  writeFakeFile(dir / "qwen2.5-0.5b-instruct-placeholder.gguf", std::string("GGUF") + std::string(64, '\0'));
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  // 事后修订（用户决策）：实验性开关默认 false，须显式开启后"档位切换自动
+  // 重新匹配草稿模型"的断言（而非"开关本身"）才是本用例实际要验证的内容。
+  controller.setSpeculativeDecodingEnabled(true);
+
+  controller.switchModel(QString::fromStdString(mediumTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  EXPECT_TRUE(controller.speculativeDecodingNoticeText().isEmpty())
+      << "中配档位已配置草稿模型，提示文案应为空";
+
+  controller.switchModel(QString::fromStdString(highTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  // Edge Cases 第一条：切换档位后 MUST 自动重新匹配新档位对应的默认草稿模型，
+  // 不错误沿用中配阶段"已启用"状态。
+  EXPECT_FALSE(controller.speculativeDecodingNoticeText().isEmpty())
+      << "高配档位未配置对应草稿模型，提示文案应自动变为非空，不沿用中配阶段的空字符串状态";
+
+  std::filesystem::remove_all(dir);
+}
+
+// 事后修订（用户决策）：实测发现投机解码在本机反而显著变慢后，改为默认关闭
+// 的实验性开关，新增以下两个测试覆盖该决策引入的新行为。
+
+TEST(SessionControllerTest, SpeculativeDecodingDisabledByDefault) {
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  EXPECT_FALSE(controller.speculativeDecodingEnabled());
+}
+
+TEST(SessionControllerTest, SpeculativeDecodingNoticeShowsDisabledReasonEvenWhenDraftModelFilePresent) {
+  ensureCoreApplication();
+  const auto realLowTierPath = realLoadableLowTierModelPathForSymlink();
+  {
+    babel::slowpath::LlmEngine probe(realLowTierPath);
+    if (!probe.modelAvailable()) {
+      GTEST_SKIP() << "本地未放置真实低配模型文件（Qwen2.5-3B-Instruct），跳过投机解码提示文案验证。";
+    }
+  }
+
+  const auto dir = isolatedSpeculativeTestModelDirectoryFor("DisabledByDefaultDespiteDraftPresent");
+  const auto mediumTierTestPath = dir / "qwen2.5-7b-instruct-symlink-test.gguf";
+  std::error_code symlinkEc;
+  std::filesystem::create_symlink(realLowTierPath, mediumTierTestPath, symlinkEc);
+  ASSERT_FALSE(symlinkEc) << symlinkEc.message();
+  // 与 SpeculativeDecodingNoticeTextClearsWhenMatchingDraftModelFilePresent
+  // 使用相同的"已配置草稿模型文件"前提，但本用例刻意不调用
+  // setSpeculativeDecodingEnabled(true)——验证默认关闭开关时，即使草稿模型
+  // 文件客观存在，提示文案仍反映"开关未启用"这一原因，而非静默视为已启用。
+  writeFakeFile(dir / "qwen2.5-0.5b-instruct-placeholder.gguf", std::string("GGUF") + std::string(64, '\0'));
+
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  ASSERT_FALSE(controller.speculativeDecodingEnabled());
+  controller.switchModel(QString::fromStdString(mediumTierTestPath.string()));
+  ASSERT_TRUE(
+      pumpEventsUntil([&controller]() { return !controller.modelSwitching(); }, std::chrono::seconds(60)));
+  ASSERT_TRUE(controller.modelAvailable());
+  EXPECT_FALSE(controller.speculativeDecodingNoticeText().isEmpty())
+      << "默认关闭开关时，即使草稿模型文件存在，仍应提示未启用（原因为开关而非文件缺失）";
+
+  std::filesystem::remove_all(dir);
+}
+
+// T026：ctest --tests-regex "SessionControllerTest|LlmEngineGenerateTest|LlmEngineUnavailableTest"
+// 见本文件顶部注释与 tasks.md T026 执行记录。

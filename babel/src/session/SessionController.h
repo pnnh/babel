@@ -70,6 +70,15 @@ class SessionController : public QObject {
   Q_PROPERTY(QVariantList recommendedProfiles READ recommendedProfilesVariant CONSTANT)
   Q_PROPERTY(QString fallbackNoticeText READ fallbackNoticeText NOTIFY fallbackNoticeTextChanged)
   Q_PROPERTY(bool settingsVisible READ settingsVisible NOTIFY settingsVisibleChanged)
+  // 004-speculative-decoding（contracts/qml-cpp-session-interface-increment.md
+  // 一）：唯一的对外契约增量——草稿模型推荐规格展示 + 投机解码未启用提示。
+  Q_PROPERTY(QVariantList recommendedDraftProfiles READ recommendedDraftProfilesVariant CONSTANT)
+  Q_PROPERTY(QString speculativeDecodingNoticeText READ speculativeDecodingNoticeText NOTIFY
+                 speculativeDecodingNoticeTextChanged)
+  // 004-speculative-decoding 事后修订（用户决策：实验性功能默认关闭，设置页面
+  // 提供可见开关，由用户显式开启后才会在中/高配档位实际启用投机解码加速）。
+  Q_PROPERTY(bool speculativeDecodingEnabled READ speculativeDecodingEnabled WRITE
+                 setSpeculativeDecodingEnabled NOTIFY speculativeDecodingEnabledChanged)
 
  public:
   /// 浮窗关闭原因（qml-cpp-session-interface.md 的 sessionClosed(reason) 信号参数）。
@@ -104,6 +113,24 @@ class SessionController : public QObject {
   QVariantList recommendedProfilesVariant() const;
   QString fallbackNoticeText() const { return m_modelRuntimeState.lastFallbackNotice; }
   bool settingsVisible() const { return m_settingsVisible; }
+
+  /// 004-speculative-decoding（T017，data-model.md 二，FR-004）：固定两档草稿
+  /// 模型推荐说明性数据，与 recommendedProfiles() 同构，非扫描结果、不持久化。
+  std::vector<babel::slowpath::RecommendedDraftModelProfile> recommendedDraftProfiles() const;
+  QVariantList recommendedDraftProfilesVariant() const;
+  /// 004-speculative-decoding（T022，data-model.md 四，FR-006/FR-009）：当前
+  /// 目标模型档位是否启用投机解码加速及原因的说明文案——低配档位恒为空字符串
+  /// （不展示任何提示）；中/高配档位未配置对应草稿模型时为非空提示；已配置时
+  /// 为空字符串。
+  QString speculativeDecodingNoticeText() const { return m_speculativeDecodingNoticeText; }
+
+  /// 004-speculative-decoding 事后修订：实验性功能开关当前状态，默认 false
+  /// （不随应用重启持久化，与 002/003 既有"模型选择不跨重启持久化"约定一致）。
+  bool speculativeDecodingEnabled() const { return m_speculativeDecodingEnabled; }
+  /// 用户在设置页面切换开关时调用。若当前已有模型加载成功，立即按新的开关
+  /// 状态触发一次与 switchModel() 相同的热重载流程（重新查表决定是否传入草稿
+  /// 模型路径给 LlmEngine），使开关状态对下一次慢流生成立即生效。
+  void setSpeculativeDecodingEnabled(bool enabled);
 
   FloatingSessionState sessionState() const { return m_state; }
 
@@ -161,6 +188,13 @@ class SessionController : public QObject {
   void modelSwitchCompleted(bool success, const QString &modelName);
   /// 自动回退发生时发出：提示文案（FR-013）。
   void modelFallbackTriggered(const QString &noticeText);
+  /// 004-speculative-decoding（T022，contracts/qml-cpp-session-interface-
+  /// increment.md 一）：speculativeDecodingNoticeText 取值变化时发出。
+  void speculativeDecodingNoticeTextChanged();
+  /// 004-speculative-decoding 事后修订：speculativeDecodingEnabled 取值变化时
+  /// 发出（用户切换开关，或构造函数设置初始默认值 false 时均不 emit——仅属性
+  /// 变化后才通知，构造期无 QML 绑定可供通知）。
+  void speculativeDecodingEnabledChanged();
 
  private:
   void setState(FloatingSessionState next);
@@ -168,6 +202,18 @@ class SessionController : public QObject {
   void resetSessionData();
   void applyModelSwitchResult(std::shared_ptr<babel::slowpath::LlmEngine> engine, bool success,
                               const std::filesystem::path &finalModelPath, const QString &noticeText);
+  /// 004-speculative-decoding（T011，data-model.md 三"具体宿主位置"）：目标
+  /// 档位 -> 固定搭配草稿模型文件路径查表（供 switchModel()/
+  /// bootstrapPlatformDefaults() 调用 LlmEngine 构造函数，以及
+  /// speculativeDecodingNoticeText 提示文案计算共同复用）。Low/Unknown 档位、
+  /// 或 m_speculativeDecodingEnabled == false 时恒返回空路径（事后修订：默认
+  /// 关闭时不产生任何额外文件系统开销，与原 FR-005/FR-009 的"低配恒不启用"
+  /// 判定逻辑共用同一条早退路径）。
+  std::filesystem::path pairedDraftModelPathForTier(babel::slowpath::ModelDescriptor::TierHint tier) const;
+  /// 004-speculative-decoding（T023，data-model.md 三"取值来源与计算规则"）：
+  /// 按 `tier`/`draftModelPath` 重新计算 m_speculativeDecodingNoticeText，取值
+  /// 变化时 emit speculativeDecodingNoticeTextChanged()。
+  void updateSpeculativeDecodingNoticeText(babel::slowpath::ModelDescriptor::TierHint tier);
 
   FloatingSessionState m_state = FloatingSessionState::Hidden;
   RawDraftText m_rawDraft;
@@ -181,6 +227,13 @@ class SessionController : public QObject {
   bool m_manualPasteHintVisible = false;
   bool m_settingsVisible = false;
   babel::slowpath::ActiveModelRuntimeState m_modelRuntimeState;
+  /// 004-speculative-decoding（T022）：当前目标档位是否启用投机解码加速及
+  /// 原因的说明文案（data-model.md 四）。
+  QString m_speculativeDecodingNoticeText;
+  /// 004-speculative-decoding 事后修订：实验性功能开关，默认 false（用户决策：
+  /// 实测发现当前实现在本机反而变慢 1.8~2.6 倍，故不默认启用，仅保留为用户
+  /// 可自行尝试的可选项，不跨应用重启持久化）。
+  bool m_speculativeDecodingEnabled = false;
 
   std::unique_ptr<babel::fastpath::FastCorrector> m_fastCorrector;
   std::unique_ptr<babel::slowpath::DebounceScheduler> m_debounceScheduler;
