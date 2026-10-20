@@ -1,0 +1,229 @@
+specs/004-speculative-decoding/research.md
+  s_cf3337ea596e83::t_f1f64ef9df4b8c 90-106
+  s_cf3337ea596e83::t_e5f7a309272c10 164,166
+  s_cf3337ea596e83::t_cab64301fa32ac 63,65
+  s_349728584ddd9f::t_94183ae698a50f 1-9,11-62,64,66-89,107-163,165,167-172,174,198-228,230,232,235
+  s_cf3337ea596e83::t_24536bd448a5a0 173,175-197
+  s_cf3337ea596e83::t_c795edbaad0b6d 229,231,233-234,236
+  s_cf3337ea596e83::t_ce9bbea7db751a 10
+babel/src/slowpath/LlmEngine.h
+  s_074afe99c2e505::t_76b469bf824b7a 18-22,25-29,50-56
+.specify/feature.json
+  s_6b7ba739c15562::t_0593dc24445b45 1
+specs/004-speculative-decoding/data-model.md
+  s_349728584ddd9f::t_5ef022ae8f1ece 1-8,10-58,60-69,71-75,77-105,109-121,123
+  s_cf3337ea596e83::t_2e12e18c279435 9
+  s_cf3337ea596e83::t_8969c70becfbbc 122
+  s_cf3337ea596e83::t_596e0bd327b7e7 106-108
+  s_cf3337ea596e83::t_e668848b606498 59,70,76
+babel/src/slowpath/LlmEngine.cpp
+  s_074afe99c2e505::t_da8d3646ef5b8a 338-342
+  s_074afe99c2e505::t_4b59d6d5cbdcd1 19-41
+  s_074afe99c2e505::t_c587a3a6bc3901 559,569
+  s_074afe99c2e505::t_4194650e14cfc2 608-609
+  s_074afe99c2e505::t_c305c5dc45abe6 42-43
+  s_074afe99c2e505::t_1ffd90ad0150fb 328
+  s_074afe99c2e505::t_35ac373543369f 431-443,447-450,460-461,465,468-470,472-484,486-498,500-539
+  s_074afe99c2e505::t_beea312cdffbc5 226-251,253,255-259,261-327,329-337,343-375,378-427,430,444-445,451-459,462-464,466-467,499,540-558,560,563-568,570-606,610-616
+  s_074afe99c2e505::t_303b910506b575 87-127,136-145
+  s_074afe99c2e505::t_15ea938b590636 446
+babel/src/session/SessionController.h
+  s_074afe99c2e505::t_4935f3dad3485b 191-193,205-207,212-216,230-232
+  s_6b7ba739c15562::t_691e53c5c182fd 233-236
+  s_6b7ba739c15562::t_d6d203eb5e76c6 127-134
+  s_074afe99c2e505::t_77b3cdbcffa9f3 117-126
+  s_074afe99c2e505::t_4930d44d95c045 73-77
+  s_6b7ba739c15562::t_52c586e62b3251 194-197
+  s_6b7ba739c15562::t_d92507aa35dbb9 208-211
+  s_6b7ba739c15562::t_643d9024cc945e 78-81
+specs/004-speculative-decoding/contracts/model-catalog-draft-pairing-internal-contract.md
+  s_cf3337ea596e83::t_f437cdffb72769 25,36,38,40,42,45-46
+  s_349728584ddd9f::t_7675ecb70101ac 1-24,26-35,37,39,41,43-44,47-52
+specs/004-speculative-decoding/spec.md
+  s_a0ae27ff7c4271::t_29071f03167a9f 58
+  s_a0ae27ff7c4271::t_b961f68d49cc48 128
+  s_a0ae27ff7c4271::t_4f94b29727bfc8 48
+  s_a0ae27ff7c4271::t_ea1149243b6e00 27-29
+  s_a0ae27ff7c4271::t_da7a41aa899d68 76
+  s_a0ae27ff7c4271::t_7563c369fa47ff 94
+  s_a0ae27ff7c4271::t_41e53d91ddd7e9 99
+  s_a0ae27ff7c4271::t_d1028f4b6b1269 85
+  s_a0ae27ff7c4271::t_d3756c7a5db12c 62
+  s_a0ae27ff7c4271::t_8b89ac32429b1c 95
+  s_a0ae27ff7c4271::t_7942e28f4f8103 96
+  s_a0ae27ff7c4271::t_3407e59db7c877 97
+  s_a0ae27ff7c4271::t_233a778849de83 103
+  s_a0ae27ff7c4271::t_f5e4b325c156dc 104
+  s_a0ae27ff7c4271::t_433ab11574bb70 114
+  s_a0ae27ff7c4271::t_13313e7004a894 32
+  s_a0ae27ff7c4271::t_b662b45f1283b6 31
+  s_a0ae27ff7c4271::t_7bcf07515e5a6e 72
+  s_a0ae27ff7c4271::t_1c58df249290be 82
+  s_a0ae27ff7c4271::t_13b25a6cb2c26b 30
+  s_52f0c3eb362326::t_9d7e3823821139 1-26,33-47,49-57,59-61,63-71,73-75,77-81,83-84,86-93,98,100-102,105-113,115-127
+specs/004-speculative-decoding/contracts/llm-engine-speculative-internal-contract.md
+  s_cf3337ea596e83::t_04fc4f76ca5e6c 7,9
+  s_349728584ddd9f::t_cd5c7d6f9555c1 1-6,8,10-35,37,40,42
+  s_cf3337ea596e83::t_f9e7bb4b2ae400 43
+  s_cf3337ea596e83::t_b21200b439ee7f 36,38-39,41
+specs/004-speculative-decoding/checklists/requirements.md
+  s_a0ae27ff7c4271::t_1150fc8066a230 27
+  s_52f0c3eb362326::t_41d058b9fd0954 1-15,17-26,28-41
+  s_a0ae27ff7c4271::t_a731d69f262641 16
+specs/004-speculative-decoding/tasks.md
+  s_6b7ba739c15562::t_0ba1594e3359a8 213-225
+  s_0c1b27bf3d790a::t_88ea185004b502 1-40,44-54,56-60,62-65,67-71,73-85,87,89,91,93,95-101,104,106,108,110,112-114,116-120,126-138,140,142,144-146,148,150-162,164,166,168-170,172-176,178-186,188,190,192,196,210-212,226-312
+  s_074afe99c2e505::t_fad39a14da3cd9 55
+  s_074afe99c2e505::t_bc117fc4d90aa6 41-43
+  s_074afe99c2e505::t_44dc70d56d7748 66
+  s_074afe99c2e505::t_0331f817d7a884 72
+  s_074afe99c2e505::t_79f0b1ef9e25fa 61
+  s_074afe99c2e505::t_43bb7d7ae2ef0a 86,88,90,92,105,107,109,111
+  s_074afe99c2e505::t_ad89d551d6ee36 115,121-125
+  s_074afe99c2e505::t_e3b6a8d7e9c6e5 139,141,143,147,149,163,165,167,171,177
+  s_074afe99c2e505::t_a5518593da2b87 94,102-103
+  s_074afe99c2e505::t_482ad0d296152d 187,189,191,193-195,197-209
+babel/src/session/SessionController.cpp
+  s_074afe99c2e505::t_6bf9e63f2fbf41 391-394,397-398,400,410-411,413
+  s_074afe99c2e505::t_e09b52a63f8358 300,303
+  s_074afe99c2e505::t_9cecb7cb831b1d 98-110
+  s_074afe99c2e505::t_cce23c5d8f5724 117-123,131-132
+  s_074afe99c2e505::t_ae72550ae13ab2 265-299,305-308,316-318,328-334,354
+  s_6b7ba739c15562::t_abfd39e0b65d6c 389-390,395-396,399,412
+  s_6b7ba739c15562::t_6391925d6013ab 301-302,304,309-315,319-327,335-353
+  s_074afe99c2e505::t_2e38504e39ebeb 464-471
+  s_6b7ba739c15562::t_1a99bc6db43279 88-97
+  s_074afe99c2e505::t_d6bdbfc5727b87 83-87
+specs/004-speculative-decoding/plan.md
+  s_cf3337ea596e83::t_f9523bc7993aa7 17,19-20,22
+  s_349728584ddd9f::t_e811ea8a181cac 1-16,18,21,23-35,37,39-56,58-66,70,72-73,75-78,81,83,85,87-90,97-105,108-110,113-121,123-130,133-134,136,139-142,145-147,150-154,156-160
+  s_cf3337ea596e83::t_fd33faccde988a 38
+  s_cf3337ea596e83::t_812dd323249c1e 36
+  s_cf3337ea596e83::t_192c82928e07cc 57
+  s_cf3337ea596e83::t_c7602569fba2d0 67-69,71,74,79-80,82,84,86,91-96
+  s_cf3337ea596e83::t_3e1f5285b5fe34 106-107,111-112,122,131-132,135,137-138,143-144,148-149,155,161
+tests/session/SessionControllerTest.cpp
+  s_074afe99c2e505::t_3a0a51db029c38 174-193
+  s_6b7ba739c15562::t_f0483b66c4a7f6 463-465
+  s_6b7ba739c15562::t_97ff5965580171 536-538
+  s_6b7ba739c15562::t_d4cbdd5f9825f1 500-502
+  s_6b7ba739c15562::t_840b9ee1af3967 559-601
+  s_074afe99c2e505::t_124ca04481b060 382-462,466-499,503-535,539-558,602-603
+specs/005-learning-tip-generation/checklists/requirements.md
+  s_882d3410f2da2d::t_44fd4c66b38582 1-41
+specs/004-speculative-decoding/contracts/qml-cpp-session-interface-increment.md
+  s_349728584ddd9f::t_55ed36bede6768 1-28
+babel/src/slowpath/ModelCatalog.h
+  s_074afe99c2e505::t_7adff6abe2446f 42-51
+  s_074afe99c2e505::t_da51920ae11fe3 88-108
+  s_074afe99c2e505::t_08ea0aa3ffda78 18-21
+specs/006-paste-fallback-hotkey-feedback/checklists/requirements.md
+  s_7ef769f92bf85b::t_b5c2215ef5b2d7 1-43
+specs/005-learning-tip-generation/spec.md
+  s_882d3410f2da2d::t_c87acec9797305 1-111
+specs/004-speculative-decoding/quickstart.md
+  s_349728584ddd9f::t_b409f30b8c7aa8 1-8,10-55,57-91
+  s_6b7ba739c15562::t_21123706072ed5 103-106
+  s_cf3337ea596e83::t_6743f0a66be670 56
+  s_cf3337ea596e83::t_2306a6ce4d341d 9
+  s_074afe99c2e505::t_ad8e7c031f50a0 92-102
+babel/src/slowpath/ModelCatalog.cpp
+  s_074afe99c2e505::t_1db4e957d1414e 127-178
+tests/slowpath/LlmEngineGenerateTest.cpp
+  s_074afe99c2e505::t_50a5a65bec790f 167-303
+  s_074afe99c2e505::t_da08bde0034b2b 4-5
+  s_074afe99c2e505::t_fb7ca531b8fa56 6-7
+babel/content/SettingsPanel.qml
+  s_6b7ba739c15562::t_edf7afc326b038 117-151,163
+  s_074afe99c2e505::t_d463bf5df1d666 88-116,152-162,164
+tests/slowpath/ModelCatalogTest.cpp
+  s_074afe99c2e505::t_a68040caf76546 166-232
+  s_074afe99c2e505::t_a1e839af3166e9 4
+specs/006-paste-fallback-hotkey-feedback/spec.md
+  s_7ef769f92bf85b::t_0a32ee4f051dd9 1-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c0f893f4935751c5b1e5000b3a6200928af8398",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_074afe99c2e505": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "33e3d0f2-cbcb-46ab-b88c-002b4b72a811",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_0c1b27bf3d790a": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "34296fc3-1622-44c1-bf43-d9ebd97c5c75",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_349728584ddd9f": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "602ff90b-c747-44b0-8457-8863195a9174",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_52f0c3eb362326": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "276d6efc-0fc9-4d7a-849b-e8905ab3f5fd",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_7ef769f92bf85b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "b96b9c46-6f5b-4229-b50c-757a5dfaa50a",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_882d3410f2da2d": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "eba29c5c-28cb-4f7f-9344-cb3caf2231ed",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_a0ae27ff7c4271": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "8d93135b-acbe-4f8e-82ae-f18bedd8c163",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_cf3337ea596e83": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "17e30ee1-6920-4d10-aca5-f9e00c0088dd",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
