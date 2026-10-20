@@ -98,8 +98,11 @@ ctest --preset macos --output-on-failure
   - 长输入（约 58 字输出）：单模型 11.4s～11.7s；投机解码 28.3s～29.6s（**慢约 2.4～2.6 倍**，非预期方向）。
   - **结论（诚实记录，不回避不利结果）**：在本机实测环境下，当前实现（固定 `K=4`、Qwen2.5-14B-Instruct 搭配 Qwen2.5-1.5B-Instruct）**未能达成 SC-001/SC-002 期望的"可测量降低"，反而显著变慢**。初步诊断（`spdlog::debug` 诊断日志复核多轮验证结果，详见实现过程记录）显示：每轮草稿窗口内验证不通过（草稿猜测与目标模型真实选择不一致）的频率较高，导致草稿模型生成的候选 token 中有相当比例被丢弃，而每轮"草稿生成 + 批量验证 + 失败回滚 + 单 token 替换解码"引入的调用次数（尤其是 `llama_decode()` 调用次数）显著多于单模型路径逐 token 生成，抵消了批量验证本应带来的收益；加之本机 Apple Silicon + Metal 后端下 14B 模型单 token 解码本身延迟已较低（基线不高），进一步压缩了投机解码的收益空间。**该发现不构成本特性实现错误**（FR-001"语义等价"正确性已独立确认），而是 `research.md` §9/§4 本就要求"留待实测、不预先断言"的开放问题的真实（且不利）答案，建议后续迭代可尝试更小的 `K`、更换草稿模型搭配、或针对本应用"短句翻译"场景的特性重新评估投机解码是否值得默认启用。
 - **验证通过率（草稿 token 被目标模型接受的比例）**：诊断观察到的若干轮次样例为 `k=4` 窗口下接受数 `j∈{0,1,2}`（即每轮平均接受约 0.75～2 个草稿 token，约 20%～50% 接受率），与上述延迟结论相互印证（接受率不够高，不足以覆盖多次调用的固定开销）。
-- **内存/显存叠加占用实测结果**：本阶段**未执行**（`research.md` §4 测量步骤留待后续补测；优先级低于上述已发现的延迟不达标问题，建议一并在后续调优迭代中补做）。
-- **中配档位（Qwen2.5-7B-Instruct + Qwen2.5-0.5B-Instruct）SC-001 实测**：**阻塞**——用户的 Qwen2.5-7B-Instruct 下载在本次 `/speckit.implement` 执行期间仍未完成（文件仅 ~5.9MB），需用户完成下载后使用 `tests/session/SessionControllerTest.cpp` 的 `SwitchModelToMediumOrHighTierModelLengthensDebounceWindow`（003 既有测试，当前因此被 `GTEST_SKIP()`）与本场景一的步骤补测。
+- **内存/显存叠加占用实测结果（高配档位，`research.md` §4 方法论，`ps -o rss= -p <pid>` 读数）**：
+  - 基线（仅加载 Qwen2.5-14B-Instruct，不启用投机解码，已执行一次生成使 KV cache 填充）：RSS ≈ **4517 MB**（约 4.4GB）。
+  - 叠加（同时加载 Qwen2.5-14B-Instruct + Qwen2.5-1.5B-Instruct，投机解码路径，已执行一次生成）：RSS ≈ **10137 MB**（约 9.9GB）。
+  - **增量 ≈ 5621 MB（约 5.5GB）**——**显著高于**预期量级（Qwen2.5-1.5B-Instruct Q4_K_M 文件本身仅约 1.1GB，`research.md` §4 步骤 3 原预期增量应"与草稿模型 `approxSizeDescription` 量级相近"）。诚实记录该偏差，不回避：初步推测可能与 Apple Silicon + Metal 后端下每个独立 `llama_context` 均会分配自己的计算图 compute buffer（001 实施记录曾观察到 14B 级别模型 compute buffer 可达数百 MB 量级）、以及投机解码路径下目标模型 KV cache 配置（`n_ctx`）与草稿模型 KV cache 独立分配有关，具体根因**未**在本次实测中进一步拆解定位，留待后续调优迭代确认；该发现进一步印证"当前实现在本机既未提速、又显著增加内存占用"的双重不利结论。
+- **中配档位（Qwen2.5-7B-Instruct + Qwen2.5-0.5B-Instruct）SC-001 实测**：**阻塞**——用户两次尝试下载 Qwen2.5-7B-Instruct 均未成功（文件仅 ~5.9MB，远未达到完整 Q4_K_M 体积约 4.4~4.7GB，疑似下载中断），需用户确认下载完整后使用 `tests/session/SessionControllerTest.cpp` 的 `SwitchModelToMediumOrHighTierModelLengthensDebounceWindow`（003 既有测试，当前因此被 `GTEST_SKIP()`）与本场景一的步骤补测。
 
 ### 事后修订：默认关闭为实验性开关
 
