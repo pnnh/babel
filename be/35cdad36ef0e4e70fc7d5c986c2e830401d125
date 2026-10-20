@@ -1,0 +1,154 @@
+specs/003-model-tier-perf-tuning/research.md
+  s_a8c64923e8db0c::t_b549cb7a573509 171,173,175-177,179-186
+  s_af78283e8dd58c::t_22e8a9a8bd76ce 1-170,172,174,178,187-214,216
+  s_a8c64923e8db0c::t_e09792162da6d0 215
+.specify/feature.json
+  s_6cda4062eb87ec::t_42ba06d9b0e379 1-3
+babel/src/slowpath/ModelCatalog.cpp
+  s_57008d5ce89e8f::t_0a8ccf9866fe7f 139,141,146,148
+  s_57008d5ce89e8f::t_65ac856e60c10b 88-126
+  s_57008d5ce89e8f::t_d8f2beeb9045ff 78
+specs/003-model-tier-perf-tuning/spec.md
+  s_728b94823b1409::t_cf4ed07a7b7510 39-41,44
+  s_728b94823b1409::t_0ae7da301fc01c 42
+  s_728b94823b1409::t_fa1eb12f021b98 113
+  s_728b94823b1409::t_95755c4b87ed94 127
+  s_6cda4062eb87ec::t_759b58c29dc1d6 1,3,5,9,13,15,17-20,22,24,26-28,30,32,34-37,45,47,49,51,53,57-61,65,67,69,71,75-77,83-84,92,94-97,99,101-112,115-120,122-124,134-135,137-138,142-154
+  s_728b94823b1409::t_163294fa310937 128
+  s_728b94823b1409::t_88d50af7d7c9df 136
+  s_6cda4062eb87ec::t_4a0f421d51c692 2,4,6-8,10-12,14,16,21,23,25,29,31,33,38,46,48,50,52,54-56,62-64,66,68,70,72-74,78-82,87-91,93,98,100,125-126,129-133,139-141
+  s_728b94823b1409::t_96a934f22b7f11 85
+  s_728b94823b1409::t_52ea1b34374567 43
+  s_728b94823b1409::t_dbd84d3a422368 121
+  s_728b94823b1409::t_4815e8760cf70c 86
+  s_728b94823b1409::t_4e198994a75b9d 114
+specs/003-model-tier-perf-tuning/data-model.md
+  s_a8c64923e8db0c::t_2fceb67491fb56 68,70
+  s_af78283e8dd58c::t_19e8598a473e37 1-67,69,71-113
+specs/003-model-tier-perf-tuning/contracts/llm-engine-grammar-internal-contract.md
+  s_af78283e8dd58c::t_7bf59f21d7893e 1-38
+tests/session/SessionControllerTest.cpp
+  s_57008d5ce89e8f::t_b7ece9e67a5ed7 271-361
+  s_57008d5ce89e8f::t_ffa37787e0a159 18
+  s_57008d5ce89e8f::t_bad02bd641f2ac 4-5
+specs/003-model-tier-perf-tuning/contracts/debounce-tier-window-internal-contract.md
+  s_a8c64923e8db0c::t_7fd1b3e264e14f 71
+  s_af78283e8dd58c::t_28f5defd5869e5 1-54,56-70,72-75
+  s_a8c64923e8db0c::t_1b5b6281b5cb22 55
+babel/src/slowpath/LlmEngine.cpp
+  s_57008d5ce89e8f::t_bac0182d4cfde9 10-11
+  s_57008d5ce89e8f::t_6a4f70fabefd59 135-151,156-170,173-184,196-198
+specs/003-model-tier-perf-tuning/tasks.md
+  s_6b7ba739c15562::t_a6552bfb6819c7 147,150,153,156,159
+  s_482cc5e9a3f07d::t_cd940fe22f7f05 158
+  s_482cc5e9a3f07d::t_fe1d61be5f153b 1-40,42-64,66,68-72,74,76,78,80,82-84,86,88,90,92,94,96,98,100-112,114-117,119-127,129,131,133,135,137-146,148-149,151-152,154-155,157,160-240
+  s_6b7ba739c15562::t_3ef7cb434ef7ea 41
+  s_6b7ba739c15562::t_65f13076b6837e 65,67,73,75,77,79,81,85,87,89,91,93,95,97,99,113,118,128,130,132,134,136
+tests/slowpath/ModelCatalogTest.cpp
+  s_57008d5ce89e8f::t_f73c25387f618d 141-164
+  s_57008d5ce89e8f::t_26bc45133fc544 4
+  s_57008d5ce89e8f::t_d15d1513316b98 127,131
+  s_57008d5ce89e8f::t_0d2424f33b17d0 53,59,70-72
+babel/src/slowpath/ModelCatalog.h
+  s_57008d5ce89e8f::t_ee01de94956d59 4
+  s_57008d5ce89e8f::t_90a61d5fa5918c 59-73
+specs/003-model-tier-perf-tuning/plan.md
+  s_a8c64923e8db0c::t_523a14d97c6328 76-77,79
+  s_a8c64923e8db0c::t_407ca595f02522 88-90,92
+  s_a8c64923e8db0c::t_3a3e1614afd075 21
+  s_a8c64923e8db0c::t_5c364395ec6b7e 64-66
+  s_af78283e8dd58c::t_167a54a4b877e6 1-20,22-63,67-70,72-75,78,80,82-87,91,93-149
+  s_a8c64923e8db0c::t_1c599e9b8a8f72 81
+  s_a8c64923e8db0c::t_0cddc02e23f367 71
+  s_a8c64923e8db0c::t_465bcbfb023dbe 150
+babel/src/slowpath/DebounceScheduler.h
+  s_57008d5ce89e8f::t_224ab814309825 32-38
+babel/src/session/SessionController.cpp
+  s_57008d5ce89e8f::t_aea4575ffa5be1 98-103,105
+  s_57008d5ce89e8f::t_37910559019c11 317-326
+tests/slowpath/DebounceSchedulerTest.cpp
+  s_57008d5ce89e8f::t_c0e4ca28fd5068 111-167
+specs/003-model-tier-perf-tuning/quickstart.md
+  s_af78283e8dd58c::t_db5b523431b314 1-9,11-74,82-119
+  s_a8c64923e8db0c::t_421301769fc1da 10
+  s_a8c64923e8db0c::t_899f71a1debd9f 75-81
+babel/src/slowpath/DebounceScheduler.cpp
+  s_57008d5ce89e8f::t_b0e84ffab0c472 54-55
+tests/slowpath/LlmEngineGenerateTest.cpp
+  s_57008d5ce89e8f::t_784546494cad0f 81-82,85
+  s_57008d5ce89e8f::t_e54e566a144dfc 86,88-160
+  s_57008d5ce89e8f::t_60dbc395509ab3 87
+specs/003-model-tier-perf-tuning/checklists/requirements.md
+  s_6cda4062eb87ec::t_2b9dd3474f3aa2 1-15,17-26,28-40
+  s_728b94823b1409::t_686bc88154bf94 27
+  s_728b94823b1409::t_20b4b2479ee474 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be35cdad36ef0e4e70fc7d5c986c2e830401d125",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_482cc5e9a3f07d": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "8e077f8a-bb58-4d46-8ada-eb6fb9d9be81",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_57008d5ce89e8f": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "395fda7b-528a-4ba3-ac55-0e4662fa0dc3",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6cda4062eb87ec": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "777e4689-1740-488a-a0c0-fb62bd722673",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_728b94823b1409": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "20150e0a-e633-46c7-859b-4d0870357668",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_a8c64923e8db0c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "5749e2b0-c891-44ae-b517-b8fbd9528cf3",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_af78283e8dd58c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "5ebeedb5-0c77-4e93-b453-9cc0e5af649d",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
