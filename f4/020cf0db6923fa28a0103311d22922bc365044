@@ -1,0 +1,34 @@
+specs/006-paste-fallback-hotkey-feedback/research.md
+  s_6b7ba739c15562::t_d55ab6854f7a5b 1-113
+specs/006-paste-fallback-hotkey-feedback/contracts/target-focus-validity-contract.md
+  s_6b7ba739c15562::t_dafd62becc803f 1-27
+specs/006-paste-fallback-hotkey-feedback/quickstart.md
+  s_6b7ba739c15562::t_75220767ec9944 1-52
+specs/006-paste-fallback-hotkey-feedback/plan.md
+  s_6b7ba739c15562::t_eb0cba2dd76e82 1-113
+specs/006-paste-fallback-hotkey-feedback/data-model.md
+  s_6b7ba739c15562::t_b3d9d8e7e29043 1-103
+specs/006-paste-fallback-hotkey-feedback/contracts/hotkey-notice-contract.md
+  s_6b7ba739c15562::t_0147cc9924eab8 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f4020cf0db6923fa28a0103311d22922bc365044",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
