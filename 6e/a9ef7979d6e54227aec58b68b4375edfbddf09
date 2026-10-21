@@ -1,0 +1,52 @@
+specs/005-learning-tip-generation/contracts/qml-cpp-session-interface-increment.md
+  s_3515cac7d5363a::t_edd547f0f52809 1-29
+specs/005-learning-tip-generation/spec.md
+  s_b32001879feac9::t_b8dc24eef3d79e 67
+  s_b32001879feac9::t_d51a3f9f55a33b 69
+  s_b32001879feac9::t_afdade8a252e61 95
+  s_b32001879feac9::t_8ce0f1ddda7c4f 74-75
+  s_b32001879feac9::t_85e8f1dc9b6617 85
+  s_b32001879feac9::t_374bb1c6db6152 13-21
+specs/005-learning-tip-generation/checklists/requirements.md
+  s_b32001879feac9::t_2b0a56d9a96217 16
+  s_b32001879feac9::t_4a0c7142ae0007 27
+specs/005-learning-tip-generation/plan.md
+  s_3515cac7d5363a::t_e3db0bdc35ebcc 1-156
+specs/005-learning-tip-generation/contracts/llm-engine-learning-tip-contract.md
+  s_3515cac7d5363a::t_0d9facf98a3f48 1-39
+specs/005-learning-tip-generation/quickstart.md
+  s_3515cac7d5363a::t_f10353cc6cf18e 1-71
+specs/005-learning-tip-generation/research.md
+  s_3515cac7d5363a::t_814ae43dc073d8 1-148
+specs/005-learning-tip-generation/data-model.md
+  s_3515cac7d5363a::t_9fc0f202b14a51 1-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ea9ef7979d6e54227aec58b68b4375edfbddf09",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3515cac7d5363a": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "89ad9bed-8ac4-4876-a248-443e31941621",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_b32001879feac9": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "6fbe0ed6-450e-4a88-88fc-4f2c7c74dcf7",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
