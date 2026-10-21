@@ -1,0 +1,60 @@
+babel/content/SettingsPanel.qml
+  s_81eca98c845a3c::t_cdd9009508cbe9 164-199
+tests/slowpath/LlmEngineGenerateTest.cpp
+  s_81eca98c845a3c::t_887df4084f7179 303-417
+specs/005-learning-tip-generation/quickstart.md
+  s_81eca98c845a3c::t_ffcd297ed7386b 71-127
+tests/session/SessionControllerTest.cpp
+  s_81eca98c845a3c::t_3cb8a7e9f54f3a 604-695
+.specify/feature.json
+  s_3515cac7d5363a::t_35f15562c44a38 1
+babel/src/slowpath/LlmEngine.cpp
+  s_81eca98c845a3c::t_04535b83d3c5c3 509-510
+  s_81eca98c845a3c::t_19c1cb51e5de21 308
+  s_81eca98c845a3c::t_d2b902d93c3eea 340-359
+  s_81eca98c845a3c::t_59d786b204a82a 401-406
+  s_81eca98c845a3c::t_2fd65d34d933b1 441
+babel/src/session/SessionController.cpp
+  s_81eca98c845a3c::t_20ad878a6e48a1 129-173
+  s_81eca98c845a3c::t_ff2d239c5a89c0 699-712,716-727,730,734,736-737,746-747
+  s_81eca98c845a3c::t_d5b6d13908ec00 591-594,599-600
+  s_81eca98c845a3c::t_c850943e4e311f 418-435
+babel/src/slowpath/LlmEngine.h
+  s_81eca98c845a3c::t_87126061705726 38-44,48-55
+specs/005-learning-tip-generation/tasks.md
+  s_81eca98c845a3c::t_716b227579ee8f 43,55,59,65,72,84,90,92,96,101,103,107,112,126,130,140,142,144,146,148,150,152
+babel/src/session/SessionController.h
+  s_81eca98c845a3c::t_baaea72f0a1d0d 140-145
+  s_81eca98c845a3c::t_84a8ac8b37f4e5 210-213
+  s_81eca98c845a3c::t_066b8413850002 82-86
+  s_81eca98c845a3c::t_fea7f0aac78afe 253-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3216e75d01f4e19e46e508f0eec618306030dc9c",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3515cac7d5363a": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "89ad9bed-8ac4-4876-a248-443e31941621",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_81eca98c845a3c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "5ff8d262-1a4d-4f25-b7da-ef168066e57f",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
