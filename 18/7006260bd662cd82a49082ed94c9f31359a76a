@@ -1,0 +1,97 @@
+babel/main.cpp
+  s_bf4a2ce5dc0190::t_7e0160732c2d16 84-96,98-123
+  s_bf4a2ce5dc0190::t_1c027c4899311f 139
+  s_bf4a2ce5dc0190::t_fc7d00b6dd6f1a 97
+babel/src/fastpath/FastCorrector.h
+  s_bf4a2ce5dc0190::t_c04f4346ab93b4 26-31
+  s_bf4a2ce5dc0190::t_b7841f0c4c039a 9
+  s_bf4a2ce5dc0190::t_9b681ab414a746 54-56
+babel/src/fastpath/PinyinLattice.h
+  s_bf4a2ce5dc0190::t_3e308b7a256b35 18-21,28-37
+  s_bf4a2ce5dc0190::t_57382c17376adf 65-71,77-82
+tests/fastpath/FastCorrectorTest.cpp
+  s_bf4a2ce5dc0190::t_99bff1cd0cf2aa 6,9
+  s_bf4a2ce5dc0190::t_77cec8694e8eb4 93-169
+.specify/bugs/english-word-pinyin-misdetection/assessment.md
+  s_63d8e423a60a77::t_e2ca6ac01ce0c7 1-109
+babel/src/fastpath/FastCorrector.cpp
+  s_bf4a2ce5dc0190::t_f56d93ecd6513b 85-90,136-141
+  s_bf4a2ce5dc0190::t_e79bf84e8f466f 165-180,185-186,190-191,193-196,202-203,207-208
+  s_bf4a2ce5dc0190::t_584ddab42b2f97 25-35,38-39
+tests/fastpath/PinyinTrieTest.cpp
+  s_bf4a2ce5dc0190::t_f19c19eaa7beaf 4-5
+  s_bf4a2ce5dc0190::t_cd7b257f26fed8 24-26,30-38,48-49,67,78,106-128
+.specify/bugs/english-word-pinyin-misdetection/fix.md
+  s_bf4a2ce5dc0190::t_a0e56a7382f7bd 1-117,119
+  s_6b7ba739c15562::t_7efb9b908ae058 118
+babel/src/fastpath/DictionaryPaths.cpp
+  s_bf4a2ce5dc0190::t_c0cd703b1ff0c4 13-16
+babel/src/session/SessionController.cpp
+  s_bf4a2ce5dc0190::t_af41a263fb27c4 84-100
+  s_bf4a2ce5dc0190::t_bd0158366b9ce1 132-133
+  s_bf4a2ce5dc0190::t_8a0f047f1c0116 18
+babel/content/dictionaries/common-english-words.txt
+  s_bf4a2ce5dc0190::t_99ffc3527889ea 1-60023
+babel/src/fastpath/EnglishWordList.h
+  s_bf4a2ce5dc0190::t_67126254d52239 1-5,7-36,42-53
+  s_bf4a2ce5dc0190::t_58ee6663485697 37-41
+  s_bf4a2ce5dc0190::t_7668fad78541d8 6
+babel/src/fastpath/PinyinTrie.h
+  s_bf4a2ce5dc0190::t_8aaaf962b6c00a 16-30,37-40,42-45,54-57
+babel/src/fastpath/EnglishWordList.cpp
+  s_bf4a2ce5dc0190::t_89bff0bfd2a261 1-56,69
+  s_bf4a2ce5dc0190::t_76eeca53628323 57-68
+babel/CMakeLists.txt
+  s_bf4a2ce5dc0190::t_5c47461533c064 55-60,65-66
+babel/src/fastpath/PinyinLattice.cpp
+  s_bf4a2ce5dc0190::t_85c4c95425cae4 19-27,41-42,47-54,67,72-76
+tests/fastpath/PinyinLatticeTest.cpp
+  s_bf4a2ce5dc0190::t_638ed48efcbf8b 136-200
+.gitignore
+  s_6b7ba739c15562::t_3ae332190c4c3f 77-79
+babel/src/fastpath/PinyinTrie.cpp
+  s_bf4a2ce5dc0190::t_fcec6f94bbdb48 4,8-21,54-67,70,74-75,84-85,87,94-96,99-101
+.specify/bugs/gbnf-grammar-sampling-overhead/assessment.md
+  s_6b7ba739c15562::t_aaf6a6eb7ac74c 1-84
+.specify/bugs/english-word-pinyin-misdetection/test.md
+  s_6b7ba739c15562::t_14d4d8ee020276 1-46
+babel/src/fastpath/DictionaryPaths.h
+  s_bf4a2ce5dc0190::t_f06bd2740b671c 16-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "187006260bd662cd82a49082ed94c9f31359a76a",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_63d8e423a60a77": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a0848d05-2ffc-45cf-8548-324f91606afc",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_bf4a2ce5dc0190": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "81d98442-bebe-4069-91a6-548899661922",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
