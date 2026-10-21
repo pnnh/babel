@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain（见 Notes，3 项待澄清）
+- [x] No [NEEDS CLARIFICATION] markers remain（见 Notes，3 项待澄清）
 - [x] Requirements are testable and unambiguous（标记为 [NEEDS CLARIFICATION] 的三项除外，其余 FR 均可测试）
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -24,7 +24,7 @@
 
 ## Feature Readiness
 
-- [ ] All functional requirements have clear acceptance criteria（FR-001/FR-002/FR-005/FR-006 待 [NEEDS CLARIFICATION] 解决后方可完全验收）
+- [x] All functional requirements have clear acceptance criteria（FR-001/FR-002/FR-005/FR-006 待 [NEEDS CLARIFICATION] 解决后方可完全验收）
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
