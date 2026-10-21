@@ -305,7 +305,7 @@ void LlmEngine::releaseModel() {
 #endif
 }
 
-QString LlmEngine::generate(const QString &normalizedInput) const {
+QString LlmEngine::generate(const QString &normalizedInput, bool includeLearningTip) const {
   if (!m_modelAvailable) {
     return {};
   }
@@ -337,7 +337,26 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       "（数值越大越可信）；这是因为该拼音存在同音字歧义，你必须结合上下文从候选中选择"
       "语义最合适的一项（不要求必须选择可信度最高者）；最终输出的句子中绝对不能包含"
       "⟦、⟧、| 等标注符号本身，只能是选定后的纯中文文字。";
-  const std::string prompt = std::string("<|im_start|>system\n") + kSystemPrompt + "<|im_end|>\n" +
+
+  // 005-learning-tip-generation（T003，data-model.md 二.1/二.2，contracts/llm-
+  // engine-learning-tip-contract.md 二.2）：仅在 includeLearningTip == true 时
+  // 追加的系统提示词后缀——固定顺序要求"标准中文译写结果"在前、
+  // kLearningTipSeparator 其次、"英文表达建议"在后；英文表达建议部分明确要求
+  // "只能是地道英文表达本身，不附加语法点讲解或其他说明文字"（FR-003 原文）；
+  // 并明确除上述三段内容外不得输出任何其他文字。既有 kSystemPrompt 内容本身
+  // 不变，includeLearningTip == false 时沿用 kSystemPrompt 本身，与 001～004
+  // 现状逐字节一致（契约二.1）。
+  static constexpr char kLearningTipInstructionSuffix[] =
+      "完成标准中文译写结果后，你还必须紧接着原样输出标记"
+      "\"<<<EN_TIP>>>\"，然后在该标记之后输出一句与原始草稿语义相关的地道"
+      "英文表达建议；这句英文表达建议只能是地道英文表达本身，不得附加任何语法"
+      "点讲解、解释或其他说明文字；除了"
+      "\"标准中文译写结果 + <<<EN_TIP>>> + 英文表达建议\" 这三段内容之外，"
+      "不得输出任何其他文字。";
+
+  const std::string effectiveSystemPrompt =
+      includeLearningTip ? std::string(kSystemPrompt) + kLearningTipInstructionSuffix : std::string(kSystemPrompt);
+  const std::string prompt = std::string("<|im_start|>system\n") + effectiveSystemPrompt + "<|im_end|>\n" +
                               "<|im_start|>user\n" + normalizedInput.toStdString() + "<|im_end|>\n" +
                               "<|im_start|>assistant\n";
 
@@ -379,6 +398,12 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
   // 检查候选集合是否已全部被掩码为 -inf（"语法梗阻"，FR-008）。
   std::string result;
   constexpr int kMaxOutputTokens = 256;  // MVP 固定上限，避免单次生成无界耗时
+  // 005-learning-tip-generation（T003，contracts/llm-engine-learning-tip-
+  // contract.md 二.4）：双段输出（标准中文译写结果 + 学习提示）需要更多输出
+  // token 空间，仅在 includeLearningTip == true 时生效，与既有 kMaxOutputTokens
+  // 互不影响。
+  constexpr int kMaxOutputTokensWithLearningTip = 400;
+  const int effectiveMaxOutputTokens = includeLearningTip ? kMaxOutputTokensWithLearningTip : kMaxOutputTokens;
 
   // 004-speculative-decoding（T009，contracts/llm-engine-speculative-internal-
   // contract.md 四，research.md §3 方案 B）：目标模型提示词 tokenize/首次
@@ -413,7 +438,7 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
     llama_sampler *temp = llama_sampler_init_temp(0.3f);
     llama_sampler *dist = llama_sampler_init_dist(/*seed=*/0);
 
-    for (int i = 0; i < kMaxOutputTokens; ++i) {
+    for (int i = 0; i < effectiveMaxOutputTokens; ++i) {
       const float *logits = llama_get_logits_ith(m_ctx, -1);
       const int32_t nVocab = llama_vocab_n_tokens(vocab);
       std::vector<llama_token_data> candidates(static_cast<std::size_t>(nVocab));
@@ -481,8 +506,8 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
   bool stoppedByEog = false;
   bool stoppedByGrammarStall = false;
 
-  while (producedTokens < kMaxOutputTokens) {
-    const int windowSize = std::min(kSpeculativeDraftWindow, kMaxOutputTokens - producedTokens);
+  while (producedTokens < effectiveMaxOutputTokens) {
+    const int windowSize = std::min(kSpeculativeDraftWindow, effectiveMaxOutputTokens - producedTokens);
 
     // ---- 草稿阶段：草稿模型自回归生成最多 windowSize 个候选 token ----
     // 记录本轮草稿阶段开始前草稿模型 KV cache 的位置（供验证不通过时回滚使

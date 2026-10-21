@@ -161,6 +161,42 @@ Rectangle {
             wrapMode: Text.WordWrap
         }
 
+        // 005-learning-tip-generation（T011，data-model.md 五，FR-008）：学习
+        // 提示气泡开关，默认开启；复用上方投机解码开关完全相同的纯 Rectangle
+        // （圆角滑块轨道+圆形滑块）+ MouseArea 实现模式，不引入
+        // QtQuick.Controls 依赖。
+        Row {
+            spacing: 8
+            Rectangle {
+                id: learningTipToggle
+                width: 36
+                height: 20
+                radius: 10
+                anchors.verticalCenter: parent.verticalCenter
+                color: SessionController.learningTipEnabled ? "#4caf50" : "#555555"
+
+                Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    color: "#ffffff"
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: SessionController.learningTipEnabled ? parent.width - width - 2 : 2
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: SessionController.learningTipEnabled = !SessionController.learningTipEnabled
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "学习提示气泡（默认开启）"
+                color: "#aaaaaa"
+                font.pixelSize: 12
+            }
+        }
+
 
         Text {
             text: "本地模型目录文件（点选切换，耗时操作，热切换期间慢流暂不可用）"

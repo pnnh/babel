@@ -40,7 +40,7 @@ tests/session/SessionControllerTest.cpp
 
 **Purpose**: 在改动前建立"全绿基线"，便于后续断言变更前后对照，不引入任何新依赖/新构建目标。
 
-- [ ] T001 运行既有完整 CTest 套件建立变更前基线：`cmake --build --preset macos` 后执行 `ctest --preset macos --output-on-failure`，确认 001～004 既有全部测试文件中的用例（当前共 16 个测试文件、101 个 `TEST()` 用例；依赖真实模型文件的用例按既有 `GTEST_SKIP()` 约定可跳过）处于可对照的基线状态，记录通过/跳过清单，供后续核对本特性新增用例是否按预期从新增变为 PASS（而非破坏既有断言）。
+- [X] T001 运行既有完整 CTest 套件建立变更前基线：`cmake --build --preset macos` 后执行 `ctest --preset macos --output-on-failure`，确认 001～004 既有全部测试文件中的用例（当前共 16 个测试文件、101 个 `TEST()` 用例；依赖真实模型文件的用例按既有 `GTEST_SKIP()` 约定可跳过）处于可对照的基线状态，记录通过/跳过清单，供后续核对本特性新增用例是否按预期从新增变为 PASS（而非破坏既有断言）。
 
 **Checkpoint**：基线已记录，可开始 Foundational 阶段。
 
@@ -52,24 +52,24 @@ tests/session/SessionControllerTest.cpp
 
 **⚠️ CRITICAL**: 本阶段完成前，两个用户故事均无法开始实施。
 
-- [ ] T002 [P] 在 `babel/src/slowpath/LlmEngine.h` 新增（`data-model.md` 二.1/二.2，`contracts/llm-engine-learning-tip-contract.md` 一）：
+- [X] T002 [P] 在 `babel/src/slowpath/LlmEngine.h` 新增（`data-model.md` 二.1/二.2，`contracts/llm-engine-learning-tip-contract.md` 一）：
   - 公开常量 `static constexpr const char *kLearningTipSeparator = "<<<EN_TIP>>>";`（用户已决策采纳的方案 3 ASCII marker）；
   - `generate()` 签名新增带默认值参数：`QString generate(const QString &normalizedInput, bool includeLearningTip = false) const;`（返回类型不变，默认值保证 001～004 既有单参数调用点源码零改动）。
 
-- [ ] T003 在 `babel/src/slowpath/LlmEngine.cpp` 实现 T002 新增参数的行为（depends on T002，`research.md` §3/§6/§7，`contracts/llm-engine-learning-tip-contract.md` 二）：
+- [X] T003 在 `babel/src/slowpath/LlmEngine.cpp` 实现 T002 新增参数的行为（depends on T002，`research.md` §3/§6/§7，`contracts/llm-engine-learning-tip-contract.md` 二）：
   - 在 `generate()` 内新增内部常量 `constexpr int kMaxOutputTokensWithLearningTip = 400;`（与既有 `constexpr int kMaxOutputTokens = 256;` 并列）与一段仅在 `includeLearningTip == true` 时追加拼接的系统提示词后缀常量（暂命名 `kLearningTipInstructionSuffix`），文案 MUST 满足：(a) 明确"标准中文译写结果"在前、分隔符 `kLearningTipSeparator` 其次、"英文表达建议"在后的固定顺序；(b) 明确英文表达建议"只能是地道英文表达本身，不附加语法点讲解或其他说明文字"（FR-003 原文）；(c) 明确除上述三段内容外不得输出任何其他文字；
   - 既有 `kSystemPrompt` 常量内容本身**不变**；`includeLearningTip == true` 时实际使用的系统提示词文本为 `kSystemPrompt + kLearningTipInstructionSuffix`，`== false` 时沿用 `kSystemPrompt` 本身（与 001～004 现状逐字节一致）；
   - 新增 `const int effectiveMaxOutputTokens = includeLearningTip ? kMaxOutputTokensWithLearningTip : kMaxOutputTokens;`，并将既有单模型采样循环 `for (int i = 0; i < kMaxOutputTokens; ++i)` 与投机解码分支的 `while (producedTokens < kMaxOutputTokens)`/`windowSize = std::min(kSpeculativeDraftWindow, kMaxOutputTokens - producedTokens)` 三处既有引用（当前均在 `generate()` 方法体内）改为引用 `effectiveMaxOutputTokens`，使两条既有分支（单模型/投机解码）共享同一套按 `includeLearningTip` 决定的 prompt 文本与采样上限，不需要为投机解码分支单独适配代码（契约二.5 正交性要求）；
   - **MUST NOT** 修改 `ForbiddenTokenMask::build()` 预计算逻辑、既有黑名单范围（⟦/⟧/|）、既有语法梗阻/EOG 终止判定逻辑本身（契约二.3/二.6，`research.md` §4）。
 
-- [ ] T004 [P] 在 `tests/slowpath/LlmEngineGenerateTest.cpp` 新增测试用例（depends on T003，`contracts/llm-engine-learning-tip-contract.md` 二）：
+- [X] T004 [P] 在 `tests/slowpath/LlmEngineGenerateTest.cpp` 新增测试用例（depends on T003，`contracts/llm-engine-learning-tip-contract.md` 二）：
   - `GenerateDefaultIncludeLearningTipFalseNeverContainsSeparator`：沿用既有 `ModelPaths::conventionalModelFilePath()` 模型不可用时 `GTEST_SKIP()` 惯例；分别调用既有单参数 `generate(text)` 与显式 `generate(text, /*includeLearningTip=*/false)`，断言两者输出均不包含 `LlmEngine::kLearningTipSeparator`（契约二.1，`includeLearningTip=false` 时与 001～004 现状逐字节一致的外部可观察等价性）；
   - `GenerateIncludeLearningTipTrueDoesNotCrashAndReturnsNonEmptyOutput`：调用 `generate(text, /*includeLearningTip=*/true)`，断言不崩溃且输出非空（模型是否真的遵循双段格式指令不作为本用例的强制断言——契约二.3 明确"格式指令未被遵循是预期内情形，不是 bug"）；
   - `GenerateIncludeLearningTipTrueNeverLeaksLatticeAnnotationSymbols`：复用既有 ⟦/⟧/| 检查手法（参照 `GenerateOnHighAmbiguityDensityInputNeverLeaksAnnotationSymbols`），确认 `includeLearningTip=true` 不影响既有 `ForbiddenTokenMask` 屏蔽效果；
   - `GenerateIncludeLearningTipTrueWhenSeparatorPresentTextBeforeSeparatorIsNonEmptyAfterTrim`：**条件式**不变量断言——若某次真实输出恰好包含 `kLearningTipSeparator`（不强制要求，模型遵循概率不保证），则断言分隔符之前trimmed 后的文本非空（为 `SessionController::parseLearningTipOutput()` 的"畸形输出兜底"算法提供真实模型输出层面的交叉验证依据，`data-model.md` 三.5 算法第 3 步）；若本次输出不含分隔符则该断言自然跳过（不视为失败）；
   - `GenerateWithDraftModelAndIncludeLearningTipTrueRemainsConsistentWithSingleModelPath`[P]（复用既有 `findRealDraftModelFile()` 辅助函数与既有 `GTEST_SKIP()` 惯例）：对 `LlmEngine(modelPath)` 与 `LlmEngine(modelPath, draftModelPath)` 两个实例均调用 `generate(text, /*includeLearningTip=*/true)`，断言二者均非空、均不含 ⟦/⟧/|（契约二.5 正交性：`includeLearningTip` 与投机解码分支完全独立，4 种组合均无需额外适配）。
 
-- [ ] T005 运行 `ctest --preset macos --output-on-failure --tests-regex "LlmEngineGenerateTest"`（depends on T004），确认 T002/T003/T004 新增内容全部通过（或因本地无真实模型文件而 `GTEST_SKIP`），且既有 `LlmEngineGenerateTest` 用例（`GeneratesWithoutCrashingOnMixedChineseEnglishDraft` 等）无回归。
+- [X] T005 运行 `ctest --preset macos --output-on-failure --tests-regex "LlmEngineGenerateTest"`（depends on T004），确认 T002/T003/T004 新增内容全部通过（或因本地无真实模型文件而 `GTEST_SKIP`），且既有 `LlmEngineGenerateTest` 用例（`GeneratesWithoutCrashingOnMixedChineseEnglishDraft` 等）无回归。
 
 **Checkpoint**：Foundational 就绪——`LlmEngine::generate()` 双段输出能力已可用，两个用户故事均可开始独立实施。
 
@@ -81,35 +81,35 @@ tests/session/SessionControllerTest.cpp
 
 **Independent Test**：按 `quickstart.md` 验证场景一——在中配或高配档位、开关默认开启状态下，输入典型中英拼音混杂草稿并等待标准中文输出预览生成完成，验证学习提示气泡区域是否同步展示非空、语义相关的英文表达建议文本。
 
-- [ ] T006 [P] [US1] 在 `babel/src/session/SessionController.h` 新增（`contracts/qml-cpp-session-interface-increment.md` 一，`data-model.md` 三.1）：
+- [X] T006 [P] [US1] 在 `babel/src/session/SessionController.h` 新增（`contracts/qml-cpp-session-interface-increment.md` 一，`data-model.md` 三.1）：
   - `Q_PROPERTY(bool learningTipEnabled READ learningTipEnabled WRITE setLearningTipEnabled NOTIFY learningTipEnabledChanged)`；
   - 公开方法 `bool learningTipEnabled() const { return m_learningTipEnabled; }` 与 `void setLearningTipEnabled(bool enabled);`（声明，实现见 T007）；
   - 信号 `void learningTipEnabledChanged();`；
   - 私有成员 `bool m_learningTipEnabled = true;`（FR-008 默认开启，不持久化，`research.md` §8 同类先例）。
 
-- [ ] T007 [US1] 在 `babel/src/session/SessionController.cpp` 实现 `setLearningTipEnabled()`（depends on T006，`data-model.md` 三.1）：取值未变化时直接返回（不 emit）；取值变化时更新 `m_learningTipEnabled` 并 `emit learningTipEnabledChanged();`；**当且仅当切换为 `false` 且当前 `m_learningTipVisible == true`** 时，立即将 `m_learningTipText` 置空、`m_learningTipVisible` 置 `false` 并分别 `emit learningTipTextChanged();`/`emit learningTipVisibleChanged();`（FR-008"MUST 立即...不等待下一轮生成完成"，不产生等待下一轮生成的副作用）；开启（`true`）时不产生任何立即副作用（气泡内容仍需等待下一轮慢流生成完成才会出现）。
+- [X] T007 [US1] 在 `babel/src/session/SessionController.cpp` 实现 `setLearningTipEnabled()`（depends on T006，`data-model.md` 三.1）：取值未变化时直接返回（不 emit）；取值变化时更新 `m_learningTipEnabled` 并 `emit learningTipEnabledChanged();`；**当且仅当切换为 `false` 且当前 `m_learningTipVisible == true`** 时，立即将 `m_learningTipText` 置空、`m_learningTipVisible` 置 `false` 并分别 `emit learningTipTextChanged();`/`emit learningTipVisibleChanged();`（FR-008"MUST 立即...不等待下一轮生成完成"，不产生等待下一轮生成的副作用）；开启（`true`）时不产生任何立即副作用（气泡内容仍需等待下一轮慢流生成完成才会出现）。
 
-- [ ] T008 [US1] 在 `babel/src/session/SessionController.cpp` 匿名命名空间新增（depends on T003，`data-model.md` 一/三.5）：
+- [X] T008 [US1] 在 `babel/src/session/SessionController.cpp` 匿名命名空间新增（depends on T003，`data-model.md` 一/三.5）：
   - 结构体 `struct ParsedLearningTipOutput { QString standardOutput; QString learningTip; bool learningTipPresent = false; };`；
   - 函数 `ParsedLearningTipOutput parseLearningTipOutput(const QString &raw)`，按 `data-model.md` 三.5 算法实现：查找 `raw` 中 `babel::slowpath::LlmEngine::kLearningTipSeparator` 首次出现位置 `idx`；`idx < 0` → `standardOutput = raw`、`learningTipPresent = false`；`idx >= 0` 时取 `candidateStandard = raw.left(idx).trimmed()`、`candidateTip = raw.mid(idx + 分隔符长度).trimmed()`，`candidateStandard` 为空则判定畸形输出、`standardOutput = raw`（整段原文兜底）、`learningTipPresent = false`；否则 `standardOutput = candidateStandard`，`candidateTip` 非空则 `learningTip = candidateTip`、`learningTipPresent = true`，否则 `learningTipPresent = false`（`standardOutput` 仍保留已解析出的有效中文部分）。纯字符串处理，不依赖 `LlmEngine`/`SessionController` 任何私有状态，线程安全。
 
-- [ ] T009 [US1] 改造 `babel/src/session/SessionController.cpp` 的 `onSlowPathTriggered()`（depends on T007, T008，`data-model.md` 三.4）：
+- [X] T009 [US1] 改造 `babel/src/session/SessionController.cpp` 的 `onSlowPathTriggered()`（depends on T007, T008，`data-model.md` 三.4）：
   - 在启动后台线程**之前**（主线程）计算：`const auto currentTier = babel::slowpath::ModelCatalog::classifyTierByFileName(QString::fromStdString(m_modelRuntimeState.currentModelPath.filename().string()));` 与 `const bool wantLearningTip = m_learningTipEnabled && (currentTier == babel::slowpath::ModelDescriptor::TierHint::Medium || currentTier == babel::slowpath::ModelDescriptor::TierHint::High);`（`Low`/`Unknown` 恒为 `false`，FR-009；不新增独立查表函数，内联布尔表达式，`data-model.md` 四）；
   - 将 `wantLearningTip` 按值捕获进后台线程 lambda；原 `engine->generate(inputSnapshot)` 改为 `engine->generate(inputSnapshot, wantLearningTip)`；`wantLearningTip == true` 时在**同一后台线程**内调用 `parseLearningTipOutput(generated)`（T008，纯函数、线程安全）得到 `standardOutput`/`learningTip`/`learningTipPresent`；`wantLearningTip == false` 时 `standardOutput = generated`、`learningTip = QString()`、`learningTipPresent = false`；
   - 在既有 `QMetaObject::invokeMethod(..., Qt::QueuedConnection)` 完成回调内（与 `m_outputPreview.content` 回填**同一次**回调，`research.md` §2 既定"仅完成回调整体替换"时机）新增：`self->m_outputPreview.content = standardOutput;`（替换原先直接赋值 `generated`）、`self->m_learningTipText = learningTipPresent ? learningTip : QString();`、`self->m_learningTipVisible = learningTipPresent;`，并分别 `emit self->learningTipTextChanged();`/`emit self->learningTipVisibleChanged();`（与既有 `outputPreviewTextChanged()`/`outputPreviewStateChanged()` 一并 emit，顺序不敏感）。
 
-- [ ] T010 [US1] 在 `babel/src/session/SessionController.cpp` 的 `resetSessionData()` 新增（depends on T007，`research.md` §2，`data-model.md` 三.3）：`m_learningTipText = QString();`、`m_learningTipVisible = false;`，并 `emit learningTipTextChanged();`/`emit learningTipVisibleChanged();`（置于既有字段重置逻辑之后、既有信号 emit 之前或之后均可，保持与既有字段重置风格一致），避免跨会话残留上一次会话的英文建议内容。
+- [X] T010 [US1] 在 `babel/src/session/SessionController.cpp` 的 `resetSessionData()` 新增（depends on T007，`research.md` §2，`data-model.md` 三.3）：`m_learningTipText = QString();`、`m_learningTipVisible = false;`，并 `emit learningTipTextChanged();`/`emit learningTipVisibleChanged();`（置于既有字段重置逻辑之后、既有信号 emit 之前或之后均可，保持与既有字段重置风格一致），避免跨会话残留上一次会话的英文建议内容。
 
-- [ ] T011 [P] [US1] 在 `babel/content/SettingsPanel.qml` 新增开关控件（depends on T006，`data-model.md` 五）：复用既有 `speculativeDecodingEnabled` 开关完全相同的纯 `Rectangle`（圆角滑块轨道+圆形滑块）+ `MouseArea` 实现模式（不引入 `QtQuick.Controls` 依赖，不新增任何 QML 文件），绑定 `SessionController.learningTipEnabled`，点击时执行 `SessionController.learningTipEnabled = !SessionController.learningTipEnabled`，搭配一个 `Text` 标签（如"学习提示气泡（默认开启）"）。放置位置建议紧邻既有投机解码开关附近，具体视觉细节（颜色/文案措辞）按宪章原则 IV 自主确定。
+- [X] T011 [P] [US1] 在 `babel/content/SettingsPanel.qml` 新增开关控件（depends on T006，`data-model.md` 五）：复用既有 `speculativeDecodingEnabled` 开关完全相同的纯 `Rectangle`（圆角滑块轨道+圆形滑块）+ `MouseArea` 实现模式（不引入 `QtQuick.Controls` 依赖，不新增任何 QML 文件），绑定 `SessionController.learningTipEnabled`，点击时执行 `SessionController.learningTipEnabled = !SessionController.learningTipEnabled`，搭配一个 `Text` 标签（如"学习提示气泡（默认开启）"）。放置位置建议紧邻既有投机解码开关附近，具体视觉细节（颜色/文案措辞）按宪章原则 IV 自主确定。
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] 在 `tests/session/SessionControllerTest.cpp` 新增测试用例（depends on T009, T010）：
+- [X] T012 [P] [US1] 在 `tests/session/SessionControllerTest.cpp` 新增测试用例（depends on T009, T010）：
   - `LearningTipEnabledDefaultsToTrue`：构造 `SessionController` 后断言 `learningTipEnabled() == true`（FR-008 默认开启）；
   - `LearningTipEnabledWriteUpdatesValueAndEmitsNotifyOnlyOnActualChange`：用 `QObject::connect(&controller, &SessionController::learningTipEnabledChanged, [&]{ ++count; })` 计数（不引入 `QSignalSpy`/`Qt::Test` 新依赖）；调用 `setLearningTipEnabled(false)` 后断言 `learningTipEnabled() == false` 且计数为 1；再次调用 `setLearningTipEnabled(false)`（取值未变化）断言计数仍为 1（不重复 emit）；调用 `setLearningTipEnabled(true)` 断言恢复 `true` 且计数变为 2；
   - `ResetSessionDataClearsLearningTipFieldsAndEmitsNotifySignalsOnEachSessionInvocation`：用 `QObject::connect` 分别对 `learningTipTextChanged`/`learningTipVisibleChanged` 计数；调用 `onHotkeyToggled()`（Hidden → Invoked，内部触发一次 `resetSessionData()`）后断言两个计数均 ≥ 1、`learningTipText().isEmpty() == true`、`learningTipVisible() == false`；**注释须注明**：本用例验证的是"每次新会话唤起都会执行清空分支并正确 emit 信号"这一结构性正确性，**不**验证"确实清除了上一会话残留的真实非空内容"（该效果需真实走通一次 `onSlowPathTriggered()` 生成回合才能构造前置状态，受限于 `onSlowPathTriggered()` 为 private 且仅在生产专用的 `bootstrapPlatformDefaults()` 内接线，测试进程无法安全触发，留待 `quickstart.md` 场景三人工验证，Polish 阶段 T019）。
 
-- [ ] T013 运行 `ctest --preset macos --output-on-failure --tests-regex "SessionControllerTest|LlmEngineGenerateTest"`（depends on T012），确认 User Story 1 新增断言全部通过，既有用例无回归。
+- [X] T013 运行 `ctest --preset macos --output-on-failure --tests-regex "SessionControllerTest|LlmEngineGenerateTest"`（depends on T012），确认 User Story 1 新增断言全部通过，既有用例无回归。
 
 **Checkpoint**：User Story 1 结构性实现与可自动化验证部分完成（MVP）；真实场景下"确实展示出语义相关的英文建议"效果需 `quickstart.md` 场景一人工验证（Polish 阶段 T017）。
 
@@ -123,11 +123,11 @@ tests/session/SessionControllerTest.cpp
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] 在 `tests/session/SessionControllerTest.cpp` 新增测试用例（depends on T009，复用 `tests/session/ModelUnavailableTest.cpp` 已有的 `missingPath` 构造模式，不依赖真实模型文件，完全确定性）：
+- [X] T014 [P] [US2] 在 `tests/session/SessionControllerTest.cpp` 新增测试用例（depends on T009，复用 `tests/session/ModelUnavailableTest.cpp` 已有的 `missingPath` 构造模式，不依赖真实模型文件，完全确定性）：
   - `LearningTipStaysInvisibleAndEmptyWhenModelUnavailable`：以指向不存在文件路径的 `LlmEngine` 构造 `SessionController`（`setLlmEngine(std::make_shared<LlmEngine>(missingPath))`），`ASSERT_FALSE(controller.modelAvailable())` 后调用 `onHotkeyToggled()`，断言 `sessionState() == FloatingSessionState::ModelUnavailable`（既有 FR-011 行为无回归）且 `learningTipVisible() == false`、`learningTipText().isEmpty() == true`（`onSlowPathTriggered()` 既有的 `!m_modelAvailable` 早退路径本就不会触碰这两个字段，本用例断言其保持默认初始值，FR-004 语义）；
   - `LearningTipVisibleAndTextConsistencyInvariantHoldsAfterConstruction`：构造后（未调用任何生成相关方法）断言 `learningTipVisible() == !learningTipText().isEmpty()` 恒成立（即 `learningTipVisible()` 为 `true` 当且仅当 `learningTipText()` 非空，FR-004"不得出现标准中文译写失败、但学习提示仍展示内容的不一致状态"对应的最小可确定性断言子集）。
 
-- [ ] T015 运行 `ctest --preset macos --output-on-failure --tests-regex "SessionControllerTest"`（depends on T014），确认 User Story 2 新增断言全部通过，既有用例（含 T012 新增）无回归。
+- [X] T015 运行 `ctest --preset macos --output-on-failure --tests-regex "SessionControllerTest"`（depends on T014），确认 User Story 2 新增断言全部通过，既有用例（含 T012 新增）无回归。
 
 **Checkpoint**：User Story 1、User Story 2 结构性实现与可自动化验证部分均已完成；真实场景下"中/高配展示有效建议""低配/关闭开关恒不展示""关闭开关立即隐藏已展示内容""跨会话清空真实残留内容"均需 Polish 阶段按 `quickstart.md` 场景一/二/三/四/五人工验证。
 
@@ -137,19 +137,19 @@ tests/session/SessionControllerTest.cpp
 
 **Purpose**：两个用户故事均完成后的全量回归、端到端手工验证（覆盖受限于测试架构无法自动化的场景，含用户已确认延期到本阶段的"开关关闭立即隐藏""跨会话清空残留"两项）与实测数据记录。
 
-- [ ] T016 全量回归：运行 `ctest --preset macos --output-on-failure`（depends on T005, T013, T015），执行全部既有 + 本特性新增测试用例，确认无回归失败，与 T001 建立的基线逐条对照差异均为本特性预期内的新增/变更。
+- [X] T016 全量回归：运行 `ctest --preset macos --output-on-failure`（depends on T005, T013, T015），执行全部既有 + 本特性新增测试用例，确认无回归失败，与 T001 建立的基线逐条对照差异均为本特性预期内的新增/变更。
 
-- [ ] T017 [P] 按 `quickstart.md` 验证场景一（中/高配档位、开关默认开启时看到地道英文表达建议，对应 User Story 1、SC-001/SC-002/SC-003）手工验证（depends on T009, T011）：记录学习提示气泡是否从不可见变为可见、展示内容是否语义相关、是否仅包含地道英文表达本身不附加语法点讲解；若本机无真实中配/高配目标模型文件，记录"因缺少模型文件无法实测"并说明需用户下载后补测（与 003/004 既有记录模式一致）。
+- [X] T017 [P] 按 `quickstart.md` 验证场景一（中/高配档位、开关默认开启时看到地道英文表达建议，对应 User Story 1、SC-001/SC-002/SC-003）手工验证（depends on T009, T011）：记录学习提示气泡是否从不可见变为可见、展示内容是否语义相关、是否仅包含地道英文表达本身不附加语法点讲解；若本机无真实中配/高配目标模型文件，记录"因缺少模型文件无法实测"并说明需用户下载后补测（与 003/004 既有记录模式一致）。
 
-- [ ] T018 [P] 按 `quickstart.md` 验证场景二（持续编辑触发多轮重新生成时内容保持同步，对应 User Story 1 验收场景 4、SC-005）手工验证（depends on T009）：核对学习提示内容与标准中文输出预览的更新时机是否同步（同一次生成完成回调内一起替换），不出现"中文预览已更新但英文建议还是旧的"窗口期。
+- [X] T018 [P] 按 `quickstart.md` 验证场景二（持续编辑触发多轮重新生成时内容保持同步，对应 User Story 1 验收场景 4、SC-005）手工验证（depends on T009）：核对学习提示内容与标准中文输出预览的更新时机是否同步（同一次生成完成回调内一起替换），不出现"中文预览已更新但英文建议还是旧的"窗口期。
 
-- [ ] T019 按 `quickstart.md` 验证场景三（生成失败/本地模型不可用时气泡保持沉默，对应 User Story 2、SC-004；**含** T012 `ResetSessionDataClearsLearningTipFieldsAndEmitsNotifySignalsOnEachSessionInvocation` 明确标注延期的"跨会话清空真实残留内容"效果）手工验证（depends on T009, T010, T014）：临时移出/损坏模型文件后验证气泡保持不可见；恢复模型文件并**全新**热键唤起（非同会话内重新生成），验证学习提示气泡不展示上一次会话残留的任何内容。
+- [X] T019 按 `quickstart.md` 验证场景三（生成失败/本地模型不可用时气泡保持沉默，对应 User Story 2、SC-004；**含** T012 `ResetSessionDataClearsLearningTipFieldsAndEmitsNotifySignalsOnEachSessionInvocation` 明确标注延期的"跨会话清空真实残留内容"效果）手工验证（depends on T009, T010, T014）：临时移出/损坏模型文件后验证气泡保持不可见；恢复模型文件并**全新**热键唤起（非同会话内重新生成），验证学习提示气泡不展示上一次会话残留的任何内容。
 
-- [ ] T020 按 `quickstart.md` 验证场景四（设置页面开关控制展示，对应 FR-008；**含**本特性 `/speckit.tasks` 阶段与用户确认延期的"关闭开关立即隐藏已展示内容"效果）手工验证（depends on T007, T011）：验证开关切换为关闭后 `learningTipVisible` 是否立即变为不可见（不等待下一轮生成）；验证开关关闭期间标准中文输出预览与原始输入槽的展示行为与开关开启时完全一致；重新打开开关后验证恢复为场景一的正常展示行为。
+- [X] T020 按 `quickstart.md` 验证场景四（设置页面开关控制展示，对应 FR-008；**含**本特性 `/speckit.tasks` 阶段与用户确认延期的"关闭开关立即隐藏已展示内容"效果）手工验证（depends on T007, T011）：验证开关切换为关闭后 `learningTipVisible` 是否立即变为不可见（不等待下一轮生成）；验证开关关闭期间标准中文输出预览与原始输入槽的展示行为与开关开启时完全一致；重新打开开关后验证恢复为场景一的正常展示行为。
 
-- [ ] T021 [P] 按 `quickstart.md` 验证场景五（低配默认档位恒不生成学习提示，对应 FR-009）手工验证（depends on T009）：确认低配档位下学习提示气泡全程保持不可见，且标准中文输出预览的生成延迟与 001～004 既有体验一致，不因本特性引入任何可感知的延迟增加。
+- [X] T021 [P] 按 `quickstart.md` 验证场景五（低配默认档位恒不生成学习提示，对应 FR-009）手工验证（depends on T009）：确认低配档位下学习提示气泡全程保持不可见，且标准中文输出预览的生成延迟与 001～004 既有体验一致，不因本特性引入任何可感知的延迟增加。
 
-- [ ] T022 记录 `quickstart.md`"实测记录"小节要求的验证结果（depends on T017, T018, T019, T020, T021，`/speckit.implement` 完成后填写，**不得**回填 `spec.md` 本身）：如实记录每个场景的实测结论（含因缺少真实中/高配模型文件、或测试架构限制导致无法完整实测的部分，说明需用户补测的条件），**不得**预先编造任何具体延迟数值或"模型是否遵循格式指令"的成功率数据。
+- [X] T022 记录 `quickstart.md`"实测记录"小节要求的验证结果（depends on T017, T018, T019, T020, T021，`/speckit.implement` 完成后填写，**不得**回填 `spec.md` 本身）：如实记录每个场景的实测结论（含因缺少真实中/高配模型文件、或测试架构限制导致无法完整实测的部分，说明需用户补测的条件），**不得**预先编造任何具体延迟数值或"模型是否遵循格式指令"的成功率数据。
 
 ---
 

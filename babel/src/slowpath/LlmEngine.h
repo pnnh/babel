@@ -35,10 +35,24 @@ class LlmEngine {
 
   bool modelAvailable() const noexcept { return m_modelAvailable; }
 
+  /// 005-learning-tip-generation（data-model.md 二.1，contracts/llm-engine-
+  /// learning-tip-contract.md 一）：标准中文译写结果与学习提示（地道英文表达
+  /// 建议）双段输出之间的纯 ASCII 分隔符（用户已决策采纳的方案 3），模型被要
+  /// 求在两段内容之间原样输出该 marker。调用方（`SessionController`）据此在
+  /// 生成结果原始字符串中定位、切分两段内容。
+  static constexpr const char *kLearningTipSeparator = "<<<EN_TIP>>>";
+
   /// 基于规整化候选文本同步生成标准中文译写结果。
   /// 调用方（DebounceScheduler/SessionController）负责在非 UI 线程调用，避免阻塞界面。
   /// 前置条件：modelAvailable() == true；否则返回空字符串。
-  QString generate(const QString &normalizedInput) const;
+  ///
+  /// 005-learning-tip-generation（data-model.md 二.2，contracts/llm-engine-
+  /// learning-tip-contract.md 一）：`includeLearningTip` 默认 `false`，保证
+  /// 001～004 既有单参数调用点源码零改动、行为逐字节一致（契约二.1）；显式传
+  /// `true` 时在系统提示词中追加要求模型在标准中文译写结果之后输出
+  /// `kLearningTipSeparator` 与一句地道英文表达建议（FR-003），是否真的遵循
+  /// 该格式指令不作为 `generate()` 自身的保证（契约二.3，由调用方兜底解析）。
+  QString generate(const QString &normalizedInput, bool includeLearningTip = false) const;
 
  private:
   void tryLoadModel();

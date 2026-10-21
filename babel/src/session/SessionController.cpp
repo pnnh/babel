@@ -126,6 +126,51 @@ std::filesystem::path lookupPairedDraftModelPath(babel::slowpath::ModelDescripto
   return {};
 }
 
+/// 005-learning-tip-generation（T008，data-model.md 一/三.5，contracts/llm-
+/// engine-learning-tip-contract.md 三）：`generate(includeLearningTip=true)`
+/// 组合输出的解析结果——标准中文译写结果 + 学习提示（若有）+ 是否成功解析出
+/// 有效学习提示。
+struct ParsedLearningTipOutput {
+  QString standardOutput;
+  QString learningTip;
+  bool learningTipPresent = false;
+};
+
+/// 按 `babel::slowpath::LlmEngine::kLearningTipSeparator` 解析
+/// `generate(includeLearningTip=true)` 的组合输出（data-model.md 三.5 算法）：
+/// 纯字符串处理，不依赖 `LlmEngine`/`SessionController` 任何私有状态，线程
+/// 安全，仅在 `wantLearningTip == true` 时调用。
+ParsedLearningTipOutput parseLearningTipOutput(const QString &raw) {
+  ParsedLearningTipOutput parsed;
+  const QString separator = QString::fromUtf8(babel::slowpath::LlmEngine::kLearningTipSeparator);
+  const int idx = raw.indexOf(separator);
+  if (idx < 0) {
+    // 未找到分隔符（FR-004：判定为无法产出有效建议）。
+    parsed.standardOutput = raw;
+    parsed.learningTipPresent = false;
+    return parsed;
+  }
+
+  const QString candidateStandard = raw.left(idx).trimmed();
+  const QString candidateTip = raw.mid(idx + separator.length()).trimmed();
+  if (candidateStandard.isEmpty()) {
+    // 畸形输出兜底：分隔符之前的标准中文译写结果为空，整段原文兜底展示，避免
+    // 核心译文功能因格式异常而显示为空。
+    parsed.standardOutput = raw;
+    parsed.learningTipPresent = false;
+    return parsed;
+  }
+
+  parsed.standardOutput = candidateStandard;
+  if (!candidateTip.isEmpty()) {
+    parsed.learningTip = candidateTip;
+    parsed.learningTipPresent = true;
+  } else {
+    parsed.learningTipPresent = false;
+  }
+  return parsed;
+}
+
 }  // namespace
 
 void SessionController::bootstrapPlatformDefaults() {
@@ -370,6 +415,24 @@ void SessionController::setSpeculativeDecodingEnabled(bool enabled) {
   }
 }
 
+void SessionController::setLearningTipEnabled(bool enabled) {
+  if (m_learningTipEnabled == enabled) {
+    return;
+  }
+  m_learningTipEnabled = enabled;
+  emit learningTipEnabledChanged();
+
+  // FR-008："MUST 立即...不等待下一轮生成完成"：当且仅当切换为 false 且当前
+  // 已展示内容时，立即清空已展示的学习提示内容；开启（true）时不产生任何立即
+  // 副作用，气泡内容仍需等待下一轮慢流生成完成才会出现。
+  if (!enabled && m_learningTipVisible) {
+    m_learningTipText = QString();
+    m_learningTipVisible = false;
+    emit learningTipTextChanged();
+    emit learningTipVisibleChanged();
+  }
+}
+
 
 void SessionController::openSettings() {
   m_settingsVisible = true;
@@ -525,10 +588,16 @@ void SessionController::resetSessionData() {
   m_normalizedCandidate = NormalizedCandidateText{};
   m_outputPreview = StandardOutputPreview{};
   m_manualPasteHintVisible = false;
+  // 005-learning-tip-generation（T010，research.md §2，data-model.md 三.3）：
+  // 清空学习提示字段，避免跨会话残留上一次会话的英文建议内容。
+  m_learningTipText = QString();
+  m_learningTipVisible = false;
   emit rawInputSlotTextChanged();
   emit outputPreviewTextChanged();
   emit outputPreviewStateChanged();
   emit manualPasteHintVisibleChanged();
+  emit learningTipTextChanged();
+  emit learningTipVisibleChanged();
 }
 
 void SessionController::onHotkeyToggled() {
@@ -627,19 +696,45 @@ void SessionController::onSlowPathTriggered(const QString &inputSnapshot) {
   // 避免 switchModel() 热切换时旧实例被提前析构导致 use-after-free。
   std::shared_ptr<babel::slowpath::LlmEngine> engine = m_llmEngine;
   QPointer<SessionController> self(this);
-  std::thread([self, engine, inputSnapshot]() {
-    const QString generated = engine->generate(inputSnapshot);
+
+  // 005-learning-tip-generation（T009，data-model.md 三.4/四，FR-008/FR-009）：
+  // 在启动后台线程**之前**（主线程）计算是否请求学习提示——"开关开启 AND
+  // 当前档位为中/高配"，低配/未知档位恒为 false，与开关状态无关（FR-009），
+  // 不新增独立查表函数，内联布尔表达式。
+  const auto currentTier =
+      babel::slowpath::ModelCatalog::classifyTierByFileName(QString::fromStdString(
+          m_modelRuntimeState.currentModelPath.filename().string()));
+  const bool wantLearningTip =
+      m_learningTipEnabled && (currentTier == babel::slowpath::ModelDescriptor::TierHint::Medium ||
+                                currentTier == babel::slowpath::ModelDescriptor::TierHint::High);
+
+  std::thread([self, engine, inputSnapshot, wantLearningTip]() {
+    const QString generated = engine->generate(inputSnapshot, wantLearningTip);
     if (!self) {
       return;
     }
+    // 005-learning-tip-generation（T009，data-model.md 三.4）：wantLearningTip
+    // 为 true 时在同一后台线程内调用 parseLearningTipOutput()（纯函数、线程
+    // 安全）切分双段输出；为 false 时标准输出即整段 generated，不涉及学习提示。
+    QString standardOutput = generated;
+    QString learningTip;
+    bool learningTipPresent = false;
+    if (wantLearningTip) {
+      const ParsedLearningTipOutput parsed = parseLearningTipOutput(generated);
+      standardOutput = parsed.standardOutput;
+      learningTip = parsed.learningTip;
+      learningTipPresent = parsed.learningTipPresent;
+    }
     QMetaObject::invokeMethod(
         self.data(),
-        [self, generated]() {
+        [self, standardOutput, learningTip, learningTipPresent]() {
           if (!self) {
             return;
           }
-          self->m_outputPreview.content = generated;
+          self->m_outputPreview.content = standardOutput;
           self->m_outputPreview.readyAt = std::chrono::system_clock::now();
+          self->m_learningTipText = learningTipPresent ? learningTip : QString();
+          self->m_learningTipVisible = learningTipPresent;
           if (self->m_debounceScheduler) {
             self->m_debounceScheduler->markGenerationComplete();
             self->m_outputPreview.generationState = self->m_debounceScheduler->state();
@@ -648,6 +743,8 @@ void SessionController::onSlowPathTriggered(const QString &inputSnapshot) {
           }
           emit self->outputPreviewTextChanged();
           emit self->outputPreviewStateChanged();
+          emit self->learningTipTextChanged();
+          emit self->learningTipVisibleChanged();
         },
         Qt::QueuedConnection);
   }).detach();

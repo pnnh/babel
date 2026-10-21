@@ -79,6 +79,11 @@ class SessionController : public QObject {
   // 提供可见开关，由用户显式开启后才会在中/高配档位实际启用投机解码加速）。
   Q_PROPERTY(bool speculativeDecodingEnabled READ speculativeDecodingEnabled WRITE
                  setSpeculativeDecodingEnabled NOTIFY speculativeDecodingEnabledChanged)
+  // 005-learning-tip-generation（contracts/qml-cpp-session-interface-increment.md
+  // 一，data-model.md 三.1）：学习提示气泡开关，默认开启（FR-008），不跨应用
+  // 重启持久化。
+  Q_PROPERTY(
+      bool learningTipEnabled READ learningTipEnabled WRITE setLearningTipEnabled NOTIFY learningTipEnabledChanged)
 
  public:
   /// 浮窗关闭原因（qml-cpp-session-interface.md 的 sessionClosed(reason) 信号参数）。
@@ -131,6 +136,12 @@ class SessionController : public QObject {
   /// 状态触发一次与 switchModel() 相同的热重载流程（重新查表决定是否传入草稿
   /// 模型路径给 LlmEngine），使开关状态对下一次慢流生成立即生效。
   void setSpeculativeDecodingEnabled(bool enabled);
+
+  /// 005-learning-tip-generation（T006，FR-008 默认开启，不持久化）。
+  bool learningTipEnabled() const { return m_learningTipEnabled; }
+  /// 用户在设置页面切换开关时调用（实现见 T007）：当且仅当切换为 false 且
+  /// 当前已展示内容时，立即清空已展示的学习提示内容（FR-008"立即生效"）。
+  void setLearningTipEnabled(bool enabled);
 
   FloatingSessionState sessionState() const { return m_state; }
 
@@ -196,6 +207,10 @@ class SessionController : public QObject {
   /// 变化后才通知，构造期无 QML 绑定可供通知）。
   void speculativeDecodingEnabledChanged();
 
+  /// 005-learning-tip-generation（T006）：learningTipEnabled 取值变化时发出
+  /// （构造函数设置初始默认值 true 时不 emit，仅属性变化后才通知）。
+  void learningTipEnabledChanged();
+
  private:
   void setState(FloatingSessionState next);
   void onSlowPathTriggered(const QString &inputSnapshot);
@@ -234,6 +249,10 @@ class SessionController : public QObject {
   /// 实测发现当前实现在本机反而变慢 1.8~2.6 倍，故不默认启用，仅保留为用户
   /// 可自行尝试的可选项，不跨应用重启持久化）。
   bool m_speculativeDecodingEnabled = false;
+
+  /// 005-learning-tip-generation（T006，FR-008 默认开启，research.md §8 同类
+  /// 先例，不跨应用重启持久化）。
+  bool m_learningTipEnabled = true;
 
   std::unique_ptr<babel::fastpath::FastCorrector> m_fastCorrector;
   std::unique_ptr<babel::slowpath::DebounceScheduler> m_debounceScheduler;

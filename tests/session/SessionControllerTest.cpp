@@ -601,3 +601,95 @@ TEST(SessionControllerTest, SpeculativeDecodingNoticeShowsDisabledReasonEvenWhen
 
 // T026：ctest --tests-regex "SessionControllerTest|LlmEngineGenerateTest|LlmEngineUnavailableTest"
 // 见本文件顶部注释与 tasks.md T026 执行记录。
+
+// ---------------------------------------------------------------------------
+// 005-learning-tip-generation（Phase 3 User Story 1）：learningTipEnabled 属性
+// 读写/NOTIFY、resetSessionData()/onHotkeyToggled() 对学习提示字段的清空与信号
+// 触发——不依赖 onSlowPathTriggered() 私有接线的确定性子集（tasks.md T012
+// Notes：方案 C 已与用户确认的测试边界）。
+// ---------------------------------------------------------------------------
+
+TEST(SessionControllerTest, LearningTipEnabledDefaultsToTrue) {
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+  EXPECT_TRUE(controller.learningTipEnabled());
+}
+
+TEST(SessionControllerTest, LearningTipEnabledWriteUpdatesValueAndEmitsNotifyOnlyOnActualChange) {
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+
+  int notifyCount = 0;
+  QObject::connect(&controller, &SessionController::learningTipEnabledChanged, [&notifyCount]() { ++notifyCount; });
+
+  controller.setLearningTipEnabled(false);
+  EXPECT_FALSE(controller.learningTipEnabled());
+  EXPECT_EQ(notifyCount, 1);
+
+  // 取值未变化时不应重复 emit。
+  controller.setLearningTipEnabled(false);
+  EXPECT_EQ(notifyCount, 1);
+
+  controller.setLearningTipEnabled(true);
+  EXPECT_TRUE(controller.learningTipEnabled());
+  EXPECT_EQ(notifyCount, 2);
+}
+
+TEST(SessionControllerTest, ResetSessionDataClearsLearningTipFieldsAndEmitsNotifySignalsOnEachSessionInvocation) {
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+
+  int textNotifyCount = 0;
+  int visibleNotifyCount = 0;
+  QObject::connect(&controller, &SessionController::learningTipTextChanged, [&textNotifyCount]() { ++textNotifyCount; });
+  QObject::connect(&controller, &SessionController::learningTipVisibleChanged,
+                    [&visibleNotifyCount]() { ++visibleNotifyCount; });
+
+  // 调用 onHotkeyToggled()（Hidden -> Invoked，内部触发一次 resetSessionData()）。
+  // 本用例验证的是"每次新会话唤起都会执行清空分支并正确 emit 信号"这一结构性
+  // 正确性，不验证"确实清除了上一会话残留的真实非空内容"——该效果需真实走通
+  // 一次 onSlowPathTriggered() 生成回合才能构造前置状态，受限于
+  // onSlowPathTriggered() 为 private 且仅在生产专用的 bootstrapPlatformDefaults()
+  // 内接线，测试进程无法安全触发，留待 quickstart.md 场景三人工验证
+  // （Polish 阶段 T019）。
+  controller.onHotkeyToggled();
+
+  EXPECT_GE(textNotifyCount, 1);
+  EXPECT_GE(visibleNotifyCount, 1);
+  EXPECT_TRUE(controller.learningTipText().isEmpty());
+  EXPECT_FALSE(controller.learningTipVisible());
+}
+
+// ---------------------------------------------------------------------------
+// 005-learning-tip-generation（Phase 4 User Story 2）：模型不可用时学习提示
+// 恒不可见；learningTipVisible()/learningTipText() 一致性不变量。
+// ---------------------------------------------------------------------------
+
+TEST(SessionControllerTest, LearningTipStaysInvisibleAndEmptyWhenModelUnavailable) {
+  const std::filesystem::path missingPath =
+      std::filesystem::temp_directory_path() / "babel_test_learningtip_modelunavailable.gguf";
+  std::filesystem::remove(missingPath);
+
+  SessionController controller;
+  controller.setLlmEngine(std::make_shared<babel::slowpath::LlmEngine>(missingPath));
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+
+  ASSERT_FALSE(controller.modelAvailable());
+  controller.onHotkeyToggled();
+  // 既有 FR-011 行为无回归：模型不可用时迁移至 ModelUnavailable 状态。
+  EXPECT_EQ(controller.sessionState(), FloatingSessionState::ModelUnavailable);
+  // onSlowPathTriggered() 既有的 !m_modelAvailable 早退路径本就不会触碰这两个
+  // 字段，本用例断言其保持默认初始值（FR-004 语义）。
+  EXPECT_FALSE(controller.learningTipVisible());
+  EXPECT_TRUE(controller.learningTipText().isEmpty());
+}
+
+TEST(SessionControllerTest, LearningTipVisibleAndTextConsistencyInvariantHoldsAfterConstruction) {
+  SessionController controller;
+  controller.setFastCorrector(std::make_unique<babel::fastpath::FastCorrector>());
+
+  // FR-004"不得出现标准中文译写失败、但学习提示仍展示内容的不一致状态"对应
+  // 的最小可确定性断言子集：learningTipVisible() 为 true 当且仅当
+  // learningTipText() 非空。
+  EXPECT_EQ(controller.learningTipVisible(), !controller.learningTipText().isEmpty());
+}

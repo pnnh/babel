@@ -300,4 +300,119 @@ TEST(LlmEngineGenerateTest, GenerateWithCorruptDraftModelFileFallsBackSilentlyTo
   std::filesystem::remove(corruptDraftPath);
 }
 
+// 005-learning-tip-generation（T004，contracts/llm-engine-learning-tip-
+// contract.md 二.1）：includeLearningTip 默认 false 与显式 false 均不应在输出
+// 中产生 kLearningTipSeparator 痕迹，与 001～004 现状逐字节一致的外部可观察
+// 等价性。
+TEST(LlmEngineGenerateTest, GenerateDefaultIncludeLearningTipFalseNeverContainsSeparator) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件（" << modelPath.string()
+                 << "），跳过学习提示分隔符等价性验证。";
+  }
+
+  const QString input = QStringLiteral("wo today bushi very e");
+  const QString defaultOutput = engine.generate(input);
+  const QString explicitFalseOutput = engine.generate(input, /*includeLearningTip=*/false);
+  EXPECT_FALSE(defaultOutput.contains(QString::fromUtf8(babel::slowpath::LlmEngine::kLearningTipSeparator)));
+  EXPECT_FALSE(explicitFalseOutput.contains(QString::fromUtf8(babel::slowpath::LlmEngine::kLearningTipSeparator)));
+}
+
+// 005-learning-tip-generation（T004，契约二.2/二.3）：includeLearningTip=true
+// 不应崩溃、输出非空；模型是否真的遵循双段格式指令不作为本用例的强制断言。
+TEST(LlmEngineGenerateTest, GenerateIncludeLearningTipTrueDoesNotCrashAndReturnsNonEmptyOutput) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过学习提示生成验证。";
+  }
+
+  EXPECT_NO_THROW({
+    const QString output = engine.generate(QStringLiteral("wo today bushi very e"), /*includeLearningTip=*/true);
+    EXPECT_FALSE(output.isEmpty());
+  });
+}
+
+// 005-learning-tip-generation（T004，契约二.2/二.6）：includeLearningTip=true
+// 不改变既有 ForbiddenTokenMask 黑名单屏蔽效果（仍仅排除 ⟦/⟧/|）。
+TEST(LlmEngineGenerateTest, GenerateIncludeLearningTipTrueNeverLeaksLatticeAnnotationSymbols) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过学习提示场景下标注符号屏蔽验证。";
+  }
+
+  const QString highDensityInput = QStringLiteral(
+      "我⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧了晚饭，"
+      "然后⟦shi:是 0.40|时 0.30|事 0.15|市 0.08|式 0.05|使 0.02⟧的时候觉得"
+      "⟦chi:吃 0.42|持 0.35|迟 0.15|池 0.05|尺 0.02|齿 0.01⟧得太饱了。");
+  const QString output = engine.generate(highDensityInput, /*includeLearningTip=*/true);
+  EXPECT_FALSE(output.contains(QStringLiteral("⟦")));
+  EXPECT_FALSE(output.contains(QStringLiteral("⟧")));
+  EXPECT_FALSE(output.contains(QStringLiteral("|")));
+}
+
+// 005-learning-tip-generation（T004，契约二.2，data-model.md 三.5 算法第 3
+// 步）：条件式不变量——若本次真实输出恰好包含 kLearningTipSeparator（不强制
+// 要求，模型遵循概率不保证），则分隔符之前 trimmed 后的文本必须非空；若本次
+// 输出不含分隔符则该断言自然跳过（不视为失败）。
+TEST(LlmEngineGenerateTest, GenerateIncludeLearningTipTrueWhenSeparatorPresentTextBeforeSeparatorIsNonEmptyAfterTrim) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  babel::slowpath::LlmEngine engine(modelPath);
+  if (!engine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实模型文件，跳过分隔符前文本非空交叉验证。";
+  }
+
+  const QString output = engine.generate(QStringLiteral("wo today bushi very e"), /*includeLearningTip=*/true);
+  const QString separator = QString::fromUtf8(babel::slowpath::LlmEngine::kLearningTipSeparator);
+  const int idx = output.indexOf(separator);
+  if (idx < 0) {
+    GTEST_SKIP() << "本次真实推理输出未包含分隔符（模型遵循格式指令概率不保证，契约二.3），跳过该条件式断言。";
+  }
+  const QString beforeSeparator = output.left(idx).trimmed();
+  EXPECT_FALSE(beforeSeparator.isEmpty());
+}
+
+// 005-learning-tip-generation（T004，契约二.5 正交性）：includeLearningTip 与
+// 投机解码分支完全独立，4 种组合（单模型/投机解码 × includeLearningTip 取值）
+// 均无需额外适配；此处验证单模型/投机解码两个实例在 includeLearningTip=true
+// 时均非空、均不含 ⟦/⟧/|。
+TEST(LlmEngineGenerateTest, GenerateWithDraftModelAndIncludeLearningTipTrueRemainsConsistentWithSingleModelPath) {
+  QCoreApplication::setApplicationName(QStringLiteral("Babel"));
+
+  const auto modelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const auto draftModelPath = findRealDraftModelFile();
+  if (draftModelPath.empty()) {
+    GTEST_SKIP() << "本地未放置真实草稿模型文件（Qwen2.5-0.5B-Instruct/Qwen2.5-1.5B-Instruct，"
+                    "research.md §5.1/§5.3），跳过投机解码场景下学习提示正交性验证，"
+                    "见 quickstart.md 前置条件。";
+  }
+
+  babel::slowpath::LlmEngine singleModelEngine(modelPath);
+  babel::slowpath::LlmEngine speculativeEngine(modelPath, draftModelPath);
+  if (!singleModelEngine.modelAvailable() || !speculativeEngine.modelAvailable()) {
+    GTEST_SKIP() << "本地未放置真实目标模型文件，跳过投机解码场景下学习提示正交性验证。";
+  }
+
+  const QString input = QStringLiteral("wo today bushi very e");
+  const QString singleModelOutput = singleModelEngine.generate(input, /*includeLearningTip=*/true);
+  const QString speculativeOutput = speculativeEngine.generate(input, /*includeLearningTip=*/true);
+  EXPECT_FALSE(singleModelOutput.isEmpty());
+  EXPECT_FALSE(speculativeOutput.isEmpty());
+  for (const QString &output : {singleModelOutput, speculativeOutput}) {
+    EXPECT_FALSE(output.contains(QStringLiteral("⟦")));
+    EXPECT_FALSE(output.contains(QStringLiteral("⟧")));
+    EXPECT_FALSE(output.contains(QStringLiteral("|")));
+  }
+}
+
 
