@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <optional>
+#include <string>
 
 #include "babel/src/fastpath/DictionarySchema.h"
 #include "babel/src/fastpath/PinyinTrie.h"
@@ -19,11 +21,20 @@ std::vector<DictionaryEntry> sampleEntries() {
 }
 
 /// 查找候选词形在结果中对应的权重，便于按词形断言权重值而不依赖候选顺序。
-double weightOf(const std::vector<std::pair<std::string, double>> &results, const std::string &surface) {
-  for (const auto &[form, weight] : results) {
-    if (form == surface) return weight;
+double weightOf(const std::vector<PinyinTrie::TrieMatch> &results, const std::string &surface) {
+  for (const auto &match : results) {
+    if (match.surfaceForm == surface) return match.weight;
   }
   return -1.0;
+}
+
+/// 查找候选词形在结果中对应的 `exactLengthMatch` 标记，未命中时返回
+/// std::nullopt（调用方据此区分"未命中"与"命中但为溢出匹配"）。
+std::optional<bool> exactLengthMatchOf(const std::vector<PinyinTrie::TrieMatch> &results, const std::string &surface) {
+  for (const auto &match : results) {
+    if (match.surfaceForm == surface) return match.exactLengthMatch;
+  }
+  return std::nullopt;
 }
 }  // namespace
 
@@ -34,7 +45,8 @@ TEST(PinyinTrieTest, QueryByFullPinyinExactMatch) {
   trie.build(sampleEntries());
   const auto results = trie.queryByFullPinyin("nihao");
   ASSERT_FALSE(results.empty());
-  EXPECT_EQ(results.front().first, "你好");
+  EXPECT_EQ(results.front().surfaceForm, "你好");
+  EXPECT_TRUE(results.front().exactLengthMatch);
 }
 
 TEST(PinyinTrieTest, QueryByFullPinyinPrefixReturnsAllMatches) {
@@ -52,7 +64,7 @@ TEST(PinyinTrieTest, QueryByAbbrevMatchesInitialLetters) {
   trie.build(sampleEntries());
   const auto results = trie.queryByAbbrev("nh");
   ASSERT_FALSE(results.empty());
-  EXPECT_EQ(results.front().first, "你好");
+  EXPECT_EQ(results.front().surfaceForm, "你好");
 }
 
 TEST(PinyinTrieTest, QueryRanksByFrequencyWeightDescending) {
@@ -63,7 +75,7 @@ TEST(PinyinTrieTest, QueryRanksByFrequencyWeightDescending) {
   });
   const auto results = trie.queryByFullPinyin("ni", 2);
   ASSERT_EQ(results.size(), 2u);
-  EXPECT_EQ(results.front().first, "你");  // 词频更高者排在前面
+  EXPECT_EQ(results.front().surfaceForm, "你");  // 词频更高者排在前面
 }
 
 // T014 [US2]：queryByFullPinyin()/queryByAbbrev() 新返回类型携带 frequencyWeight
@@ -90,4 +102,27 @@ TEST(PinyinTrieTest, UnknownPrefixReturnsEmpty) {
   trie.build(sampleEntries());
   EXPECT_TRUE(trie.queryByFullPinyin("zzzzz").empty());
   EXPECT_TRUE(trie.queryByAbbrev("zzzzz").empty());
+}
+
+// bugfix: english-word-pinyin-misdetection 候选方向 2 —— queryByFullPinyin() 需
+// 对"查询串恰为某个更长词条全拼前缀"的溢出匹配做上限约束，避免合法英文单词
+// （如 "want"）被前缀命中为远长于自身的无关词条（如全拼 "wantai" 的"万台"）。
+
+TEST(PinyinTrieTest, QueryByFullPinyinRejectsExcessivePrefixOverreach) {
+  PinyinTrie trie;
+  trie.build({
+      {1, "万台", "wantai", "wt", 100.0},
+  });
+  // "want" 是 "wantai" 的前缀，但溢出量（6-4=2）超过允许上限，不应被命中
+  // （assessment.md 确认的 want→万台 根因场景）。
+  const auto results = trie.queryByFullPinyin("want");
+  EXPECT_TRUE(results.empty());
+}
+
+TEST(PinyinTrieTest, QueryByFullPinyinExactMatchReportsExactLengthMatchTrue) {
+  PinyinTrie trie;
+  trie.build(sampleEntries());
+  const auto exact = exactLengthMatchOf(trie.queryByFullPinyin("hao"), "好");
+  ASSERT_TRUE(exact.has_value());
+  EXPECT_TRUE(*exact);
 }

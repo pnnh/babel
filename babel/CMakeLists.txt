@@ -52,11 +52,18 @@ file(GLOB_RECURSE ASSETS_SOURCES
 # 数据文件（GPLv3，见 content/dictionaries/NOTICE-rime-ice.txt）连同许可证全文/
 # 来源声明一并内嵌为 Qt 资源，供 babel/main.cpp 首次启动时部署到约定词库目录
 # （FR-001「随包分发」、research.md §3）。零新增第三方依赖。
+#
+# bugfix: english-word-pinyin-misdetection —— 新增随包分发高频英文常用词表
+# content/dictionaries/common-english-words.txt（来源：工作区既有
+# temp/COCA60000.txt，用户已知情接受许可不确定性风险，见
+# babel/src/fastpath/EnglishWordList.h 头部注释），供 FastCorrector 在拼音匹配
+# 管线之前拦截合法英文常用词。
 file(GLOB_RECURSE DICTIONARY_SOURCES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         content/dictionaries/*.dict.yaml
         content/dictionaries/LICENSE-rime-ice.txt
-        content/dictionaries/NOTICE-rime-ice.txt)
+        content/dictionaries/NOTICE-rime-ice.txt
+        content/dictionaries/common-english-words.txt)
 list(APPEND ASSETS_SOURCES ${DICTIONARY_SOURCES})
 
 file(GLOB_RECURSE QUICK_SOURCES

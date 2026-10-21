@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "babel/src/fastpath/DictionarySchema.h"
+#include "babel/src/fastpath/EnglishWordList.h"
 #include "babel/src/fastpath/PinyinLattice.h"
 #include "babel/src/fastpath/PinyinTrie.h"
 
@@ -22,7 +23,12 @@ namespace babel::fastpath {
 /// 算编辑距离动态规划（research.md §1 已核实的体量）。
 class FastCorrector {
  public:
-  explicit FastCorrector(std::vector<DictionaryEntry> entries = builtinSeedDictionary());
+  /// `commonEnglishWords` 为 bugfix: english-word-pinyin-misdetection 新增的高
+  /// 频英文常用词表（候选方向 1），默认空（不拦截任何词，保持既有行为/既有测试
+  /// 不受影响）；生产环境由 `SessionController` 加载随包分发的词表后传入（见
+  /// `babel/src/fastpath/EnglishWordList.h`）。
+  explicit FastCorrector(std::vector<DictionaryEntry> entries = builtinSeedDictionary(),
+                         EnglishWordList commonEnglishWords = EnglishWordList());
 
   /// 将原始击键文本（中英拼音混排）规整化为候选展示文本。
   /// 002-lattice-dict-model-switch：实现改为 `buildLattice(rawInput).toDisplayText()`
@@ -45,6 +51,9 @@ class FastCorrector {
   /// `m_entries` 按 `pinyinFull.size()` 分桶的索引（值为 `m_entries` 下标），供编辑
   /// 距离回退时按长度差做无损剪枝（仅性能优化，不改变候选匹配结果）。
   std::unordered_map<std::size_t, std::vector<std::size_t>> m_entriesByPinyinLength;
+  /// bugfix: english-word-pinyin-misdetection 候选方向 1 —— 高频英文常用词表，
+  /// `looksLikeLatin()` 判定为真之后、进入拼音匹配管线之前优先查询。
+  EnglishWordList m_commonEnglishWords;
 };
 
 }  // namespace babel::fastpath

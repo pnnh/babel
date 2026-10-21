@@ -81,6 +81,46 @@ void deployBundledDictionariesIfNeeded() {
   spdlog::info("main: 已将 {} 个随包词库资产文件首次部署到约定目录 {}", copiedCount, destDir.string());
 }
 
+/// bugfix: english-word-pinyin-misdetection —— 独立部署随包高频英文常用词表
+/// （`babel/content/dictionaries/common-english-words.txt`，来源见
+/// `babel/src/fastpath/EnglishWordList.h` 头部注释）到约定词库目录，供
+/// `SessionController::bootstrapPlatformDefaults()` 加载后传入 `FastCorrector`
+/// 用于拦截合法英文常用词（候选方向 1）。
+///
+/// 与 `deployBundledDictionariesIfNeeded()` 刻意分离为独立函数、独立判断条件
+/// （仅检查该文件自身是否已存在，不受 `.dict.yaml` 文件存在性影响）：已在本次
+/// 修复之前运行过 Babel 的用户，其约定目录下已存在 `.dict.yaml` 文件，会导致
+/// `deployBundledDictionariesIfNeeded()` 整体跳过部署，若词表部署逻辑与其耦合，
+/// 老用户将永远不会获得词表文件、本缺陷修复对其不生效。
+void deployBundledCommonEnglishWordsIfNeeded() {
+  const std::filesystem::path destDir = babel::fastpath::DictionaryPaths::conventionalDictionaryDirectory();
+  const std::filesystem::path destPath = babel::fastpath::DictionaryPaths::conventionalCommonEnglishWordsFilePath();
+
+  std::error_code ec;
+  if (std::filesystem::exists(destPath, ec) && !ec) {
+    spdlog::info("main: 约定词库目录已存在高频英文常用词表，跳过首次部署（{}）", destPath.string());
+    return;
+  }
+
+  std::filesystem::create_directories(destDir, ec);
+  if (ec) {
+    spdlog::error("main: 创建约定词库目录失败 {}: {}", destDir.string(), ec.message());
+    return;
+  }
+
+  QFile src(QStringLiteral(":/qt/qml/quick/content/dictionaries/common-english-words.txt"));
+  if (!src.exists()) {
+    spdlog::warn("main: 内嵌高频英文常用词表资源缺失，跳过部署");
+    return;
+  }
+  QFile::remove(QString::fromStdString(destPath.string()));  // QFile::copy 要求目标路径不存在
+  if (!src.copy(QString::fromStdString(destPath.string()))) {
+    spdlog::warn("main: 复制内嵌高频英文常用词表资源到约定目录失败 -> {}", destPath.string());
+    return;
+  }
+  spdlog::info("main: 已将随包高频英文常用词表首次部署到约定目录 {}", destPath.string());
+}
+
 }  // namespace
 
 int main(int argc, char *argv[]) { 
@@ -96,6 +136,7 @@ int main(int argc, char *argv[]) {
     QStringLiteral("This example is powered by qmltc!"));
 
   deployBundledDictionariesIfNeeded();
+  deployBundledCommonEnglishWordsIfNeeded();
 
   // 浮窗转换器会话控制器（001-floating-ime-converter，T014）：声明顺序早于
   // engine，确保其析构晚于 engine（先析构 QML 引擎，再析构被其引用的单例实例）。

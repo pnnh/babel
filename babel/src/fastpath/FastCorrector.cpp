@@ -22,9 +22,21 @@ constexpr double kMaxAcceptableDistance = 1.5;
 /// Top-K 候选规模上限（research.md §5.4，用户委派 Agent 采纳 Recommendation，
 /// 实测前起点，待 SC-003 实测结果调参）。
 constexpr std::size_t kTopKCandidates = 8;
+
+/// bugfix: english-word-pinyin-misdetection 候选方向 2 —— 编辑距离回退最小 token
+/// 长度：短于该长度的全字母 token（典型如单字母 "I"）不参与编辑距离模糊匹配。
+/// assessment.md 确认 `I`→级 等单字母碰撞源于此路径对任意长度 token 一视同仁；
+/// 单/双字母 token 与词库中单字拼音（如 "e"/"a"）的编辑距离天然很小，极易产生
+/// 与语义无关的"巧合"命中，而真实拼音场景下用户不会仅用单个字母表达一个完整
+/// 拼音音节（最短合法拼音音节至少 2 个字母，如 "a"/"e" 除外的韵母音节，但这类
+/// 极短合法拼音在真实输入中通常伴随完整词语场景出现，非孤立 token）。已用
+/// `FastCorrectorTest.cpp` 既有正例（`hqo` 长度 3）验证该最小长度不影响既有编
+/// 辑距离纠错召回率。
+constexpr std::size_t kMinEditDistanceFallbackTokenLength = 2;
 }  // namespace
 
-FastCorrector::FastCorrector(std::vector<DictionaryEntry> entries) : m_entries(std::move(entries)) {
+FastCorrector::FastCorrector(std::vector<DictionaryEntry> entries, EnglishWordList commonEnglishWords)
+    : m_entries(std::move(entries)), m_commonEnglishWords(std::move(commonEnglishWords)) {
   m_trie.build(m_entries);
   for (std::size_t i = 0; i < m_entries.size(); ++i) {
     if (!m_entries[i].pinyinFull.empty()) {
@@ -68,6 +80,12 @@ std::vector<CandidateEntry> FastCorrector::editDistanceFallbackCandidates(const 
   std::vector<CandidateEntry> result;
   const std::size_t tokenLen = token.size();
   if (tokenLen == 0) {
+    return result;
+  }
+  // bugfix: english-word-pinyin-misdetection 候选方向 2 —— 短于最小长度的
+  // token（典型如单字母 "I"）不参与编辑距离模糊匹配，避免与词库单字拼音发生
+  // "巧合"碰撞（assessment.md 确认的 I→级 根因）。
+  if (tokenLen < kMinEditDistanceFallbackTokenLength) {
     return result;
   }
   // 长度差超过可接受阈值时，编辑距离下界（至少需要该数量次插入/删除）必然超过
@@ -115,6 +133,12 @@ std::vector<CandidateEntry> FastCorrector::editDistanceFallbackCandidates(const 
       // 距离越小、词频越高越可信；距离为 0 时等价于原始词频权重。
       c.rawWeight = entry.frequencyWeight / (1.0 + distance);
       c.source = CandidateEntry::Source::EditDistanceFallback;
+      // bugfix: english-word-pinyin-misdetection 候选方向 4（纵深防御）——
+      // 命中词条全拼长度与原始 token 长度不等时标记为"高风险"：编辑距离允许
+      // 的插入/删除天然导致长度不等，这正是 `meeting`（7 字母）与候选词条全
+      // 拼 `keting`（6 字母）这类合法英文单词被误判为拼音时的长度特征
+      // （assessment.md 发现的 meeting→客厅 坍缩问题）。
+      c.latinOriginLengthMismatch = (entry.pinyinFull.size() != tokenLen);
       result.push_back(std::move(c));
     }
   }
@@ -138,30 +162,50 @@ PinyinLatticeCell FastCorrector::buildLatticeCell(int tokenIndex, const std::str
     return cell;
   }
 
+  // bugfix: english-word-pinyin-misdetection 候选方向 1 —— 高频英文常用词表
+  // 提前拦截：`looksLikeLatin()` 判定为真之后、进入三级拼音匹配管线之前，优先
+  // 查询词表；命中则直接走透传分支，不再被当作拼音解析（类比上方
+  // `!looksLikeLatin()` 透传分支），从根源上避免合法英文常用词（如
+  // "I"/"want"/"name"/"nice"/"meeting"）被误判为走音拼音（assessment.md
+  // Root Cause Hypothesis）。
+  if (m_commonEnglishWords.contains(token)) {
+    CandidateEntry passthrough;
+    passthrough.surfaceForm = QString::fromStdString(token);
+    passthrough.rawWeight = 1.0;
+    passthrough.normalizedWeight = 1.0;
+    passthrough.source = CandidateEntry::Source::EnglishWordListPassthrough;
+    cell.candidates = {std::move(passthrough)};
+    return cell;
+  }
+
   std::vector<CandidateEntry> merged;
   std::unordered_set<std::string> seen;
 
   // 1) 全拼 Trie 命中
-  for (const auto &[surfaceForm, weight] : m_trie.queryByFullPinyin(token, kTopKCandidates)) {
-    if (!seen.insert(surfaceForm).second) {
+  for (const auto &match : m_trie.queryByFullPinyin(token, kTopKCandidates)) {
+    if (!seen.insert(match.surfaceForm).second) {
       continue;
     }
     CandidateEntry c;
-    c.surfaceForm = QString::fromStdString(surfaceForm);
-    c.rawWeight = weight;
+    c.surfaceForm = QString::fromStdString(match.surfaceForm);
+    c.rawWeight = match.weight;
     c.source = CandidateEntry::Source::FullPinyinTrie;
+    // bugfix: english-word-pinyin-misdetection 候选方向 4（纵深防御）——
+    // `!exactLengthMatch` 即该候选是"查询串恰为更长词条全拼前缀"的溢出匹配
+    // （如 `want` 前缀命中全拼 `wantai` 的"万台"），是本缺陷的典型特征。
+    c.latinOriginLengthMismatch = !match.exactLengthMatch;
     merged.push_back(std::move(c));
   }
 
   // 2) 简拼命中（token 较短，典型为首字母串，如 "zg" -> "这个"）
   if (token.size() <= 4) {
-    for (const auto &[surfaceForm, weight] : m_trie.queryByAbbrev(token, kTopKCandidates)) {
-      if (!seen.insert(surfaceForm).second) {
+    for (const auto &match : m_trie.queryByAbbrev(token, kTopKCandidates)) {
+      if (!seen.insert(match.surfaceForm).second) {
         continue;
       }
       CandidateEntry c;
-      c.surfaceForm = QString::fromStdString(surfaceForm);
-      c.rawWeight = weight;
+      c.surfaceForm = QString::fromStdString(match.surfaceForm);
+      c.rawWeight = match.weight;
       c.source = CandidateEntry::Source::AbbrevTrie;
       merged.push_back(std::move(c));
     }

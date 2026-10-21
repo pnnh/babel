@@ -15,6 +15,7 @@
 
 #include "babel/src/fastpath/DictionaryPaths.h"
 #include "babel/src/fastpath/DictionarySchema.h"
+#include "babel/src/fastpath/EnglishWordList.h"
 #include "babel/src/fastpath/FastCorrector.h"
 #include "babel/src/fastpath/RimeDictLoader.h"
 #include "babel/src/hotkey/GlobalHotkey.h"
@@ -80,6 +81,23 @@ std::vector<babel::fastpath::DictionaryEntry> loadProductionDictionaryEntries() 
   return entries;
 }
 
+/// bugfix: english-word-pinyin-misdetection 候选方向 1 —— 加载随包分发的高频
+/// 英文常用词表（`main.cpp` `deployBundledCommonEnglishWordsIfNeeded()` 已在
+/// 首次启动时部署到约定词库目录），供 `FastCorrector` 在拼音匹配管线之前拦截
+/// 合法英文常用词。文件缺失时返回空词表（`EnglishWordList::loadFromFile()` 静
+/// 默兜底），不中断主流程——此时 FastCorrector 退化为仅依赖候选方向 2 的阈值
+/// 收紧覆盖面，而非完全无防护。
+babel::fastpath::EnglishWordList loadProductionCommonEnglishWords() {
+  const auto path = babel::fastpath::DictionaryPaths::conventionalCommonEnglishWordsFilePath();
+  auto wordList = babel::fastpath::EnglishWordList::loadFromFile(path);
+  if (wordList.size() == 0) {
+    spdlog::warn("SessionController: 高频英文常用词表加载为空（{}），英文单词误判拦截将不生效", path.string());
+  } else {
+    spdlog::info("SessionController: 已加载 {} 条高频英文常用词（{}）", wordList.size(), path.string());
+  }
+  return wordList;
+}
+
 /// 004-speculative-decoding（T012，contracts/model-catalog-draft-pairing-
 /// internal-contract.md 三）：与 SessionController::pairedDraftModelPathForTier()
 /// 共享的核心查表逻辑，提取为自由函数以便 switchModel() 后台线程直接调用（不
@@ -111,7 +129,8 @@ std::filesystem::path lookupPairedDraftModelPath(babel::slowpath::ModelDescripto
 }  // namespace
 
 void SessionController::bootstrapPlatformDefaults() {
-  m_fastCorrector = std::make_unique<babel::fastpath::FastCorrector>(loadProductionDictionaryEntries());
+  m_fastCorrector = std::make_unique<babel::fastpath::FastCorrector>(loadProductionDictionaryEntries(),
+                                                                       loadProductionCommonEnglishWords());
 
   const auto defaultModelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
   // 004-speculative-decoding（T013，contracts/llm-engine-speculative-internal-

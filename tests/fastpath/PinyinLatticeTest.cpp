@@ -133,3 +133,68 @@ TEST(PinyinLatticeTest, CandidatesTruncatedToTopKEightByRawWeightDescending) {
   // 候选0权重最高（12.0），应排在首位。
   EXPECT_EQ(cell.candidates.front().surfaceForm.toStdString(), std::string("候选0"));
 }
+
+// bugfix: english-word-pinyin-misdetection 候选方向 4（纵深防御）——"无歧义但
+// 高风险坍缩"（候选数=1 且 `latinOriginLengthMismatch==true`）的格位不应被
+// `toAnnotatedPromptText()`/`toDisplayText()` 完全静默抹除原始 token
+// （assessment.md 发现的 meeting→客厅 坍缩问题）。
+
+TEST(PinyinLatticeTest, ToAnnotatedPromptTextAnnotatesRiskySingleCandidateCollapse) {
+  PinyinLattice lattice;
+
+  PinyinLatticeCell safe;
+  safe.originalToken = QStringLiteral("wo");
+  safe.candidates = {makeCandidate(QStringLiteral("我"), 100.0)};  // 精确匹配，无风险标记
+
+  PinyinLatticeCell risky;
+  risky.originalToken = QStringLiteral("meeting");
+  CandidateEntry collapsed = makeCandidate(QStringLiteral("客厅"), 100.0, CandidateEntry::Source::EditDistanceFallback);
+  collapsed.normalizedWeight = 1.0;
+  collapsed.latinOriginLengthMismatch = true;
+  risky.candidates = {collapsed};
+
+  lattice.cells = {safe, risky};
+
+  const QString annotated = lattice.toAnnotatedPromptText();
+  // "wo"->"我" 无风险标记，保持既有"无歧义格位不标注"行为；"meeting"->"客厅"
+  // 即便候选数为 1（技术上无歧义），仍需按标注格式输出，确保慢流 LLM 能看到
+  // 原始击键内容 "meeting"。
+  EXPECT_EQ(annotated.toStdString(), std::string("我⟦meeting:客厅 1.00⟧"));
+}
+
+TEST(PinyinLatticeTest, ToDisplayTextAppendsOriginalTokenForRiskySingleCandidateCollapse) {
+  PinyinLattice lattice;
+
+  PinyinLatticeCell safe;
+  safe.originalToken = QStringLiteral("wo");
+  safe.candidates = {makeCandidate(QStringLiteral("我"), 100.0)};
+
+  PinyinLatticeCell risky;
+  risky.originalToken = QStringLiteral("meeting");
+  CandidateEntry collapsed = makeCandidate(QStringLiteral("客厅"), 100.0, CandidateEntry::Source::EditDistanceFallback);
+  collapsed.latinOriginLengthMismatch = true;
+  risky.candidates = {collapsed};
+
+  lattice.cells = {safe, risky};
+
+  // FR-008 仍要求"MUST NOT 向用户呈现候选集合及其权重"：此处仅追加原始 token
+  // 本身（不含权重/候选集合），用户可见的输入预览不会完全丢失 "meeting" 的痕迹。
+  EXPECT_EQ(lattice.toDisplayText().toStdString(), std::string("我客厅(meeting)"));
+}
+
+TEST(PinyinLatticeTest, ToDisplayTextDoesNotAppendTraceWhenNoActualSubstitutionHappened) {
+  // "无命中原样保留"场景（surfaceForm == originalToken）即便标记了
+  // latinOriginLengthMismatch（理论上不会发生，但此测试确保即使发生也不会产生
+  // 冗余的 "token(token)" 输出），不应追加痕迹后缀。
+  PinyinLatticeCell cell;
+  cell.originalToken = QStringLiteral("xyz");
+  CandidateEntry noHit = makeCandidate(QStringLiteral("xyz"), 1.0, CandidateEntry::Source::EditDistanceFallback);
+  noHit.latinOriginLengthMismatch = true;
+  cell.candidates = {noHit};
+
+  PinyinLattice lattice;
+  lattice.cells = {cell};
+
+  EXPECT_EQ(lattice.toDisplayText().toStdString(), std::string("xyz"));
+}
+

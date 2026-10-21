@@ -10,4 +10,8 @@ std::filesystem::path DictionaryPaths::conventionalDictionaryDirectory() {
   return std::filesystem::path(appData.toStdString()) / "dictionaries";
 }
 
+std::filesystem::path DictionaryPaths::conventionalCommonEnglishWordsFilePath() {
+  return conventionalDictionaryDirectory() / "common-english-words.txt";
+}
+
 }  // namespace babel::fastpath
