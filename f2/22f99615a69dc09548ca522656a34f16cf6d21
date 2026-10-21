@@ -1,0 +1,35 @@
+specs/006-paste-fallback-hotkey-feedback/spec.md
+  s_f8a25722c2e070::t_798c0abedd5208 18
+  s_f8a25722c2e070::t_c807a097af7c44 19
+  s_f8a25722c2e070::t_5c67e3ecc22ef6 74
+  s_f8a25722c2e070::t_9709ad8ed827d9 108
+  s_f8a25722c2e070::t_659040874f1515 13-17,20
+  s_f8a25722c2e070::t_0faa3397ed3749 58
+  s_f8a25722c2e070::t_d8fe320a771342 99
+  s_f8a25722c2e070::t_469b76ea3d7469 73
+  s_f8a25722c2e070::t_1d36d45c0d677e 66-69
+specs/006-paste-fallback-hotkey-feedback/checklists/requirements.md
+  s_f8a25722c2e070::t_33ff724965ad62 16
+  s_f8a25722c2e070::t_ea678b626ef13d 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f222f99615a69dc09548ca522656a34f16cf6d21",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f8a25722c2e070": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f9848da1-e85f-4f55-a374-59695a5a66b8",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
