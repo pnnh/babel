@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <filesystem>
+#include <vector>
 
 // 前置声明 llama.cpp 不透明类型，避免未链接 llama-cpp 时也强制要求包含 <llama.h>
 // （见 babel/src/CMakeLists.txt 的 BABEL_HAVE_LLAMA_CPP 编译期开关）。
@@ -48,12 +49,25 @@ class LlmEngine {
   llama_model *m_model = nullptr;
   llama_context *m_ctx = nullptr;
 
+  // gbnf-grammar-sampling-overhead（fix.md Preferred remediation）：003 阶段用
+  // 通用 GBNF 语法引擎（llama_sampler_init_grammar）实现输出语法里的
+  // ⟦/⟧/| 三字符静态黑名单，导致每个输出 token 都要对全词表做一次昂贵的
+  // "解码+栈状态模拟"。该黑名单结果只取决于模型词表本身、与生成到第几步无
+  // 关，因此改为模型加载完成后一次性预计算、按 token id 索引的禁用位图
+  // （见 LlmEngine.cpp 匿名命名空间 ForbiddenTokenMask），采样循环内直接
+  // O(1) 查表。按 token id 索引，下标越界视为未禁用。
+  std::vector<bool> m_forbiddenTokenMask;
+
   // 004-speculative-decoding（contracts/llm-engine-speculative-internal-
   // contract.md 四）：草稿模型生命周期与目标模型对称管理，析构顺序一致。
   std::filesystem::path m_draftModelPath;
   bool m_draftModelAvailable = false;
   llama_model *m_draftModel = nullptr;
   llama_context *m_draftCtx = nullptr;
+
+  // 草稿模型词表与目标模型词表是两套独立词表（token id 含义不同），禁用位图
+  // 不可共用，需单独预计算、单独缓存。
+  std::vector<bool> m_draftForbiddenTokenMask;
 };
 
 }  // namespace babel::slowpath

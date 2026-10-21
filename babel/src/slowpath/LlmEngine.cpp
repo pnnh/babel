@@ -36,6 +36,148 @@ llama_batch makeSingleTokenBatch(llama_token token, llama_pos pos, llama_seq_id 
   return batch;
 }
 
+/// gbnf-grammar-sampling-overhead（bug fix，见 .specify/bugs/
+/// gbnf-grammar-sampling-overhead/assessment.md Preferred remediation）：
+///
+/// 003 阶段的输出语法 `root ::= safe-char*` / `safe-char ::= [^\u27E6\u27E7\x7C]`
+/// 仅排除 ⟦（U+27E6）/⟧（U+27E7）/|（U+007C）三个码点，不存在递归规则间的相
+/// 互依赖。但旧实现把这一规则接入了 llama.cpp 通用 GBNF 栈式语法引擎
+/// （`llama_sampler_init_grammar` + 每个输出 token 一次 `llama_sampler_apply`/
+/// `llama_sampler_accept`），导致每个输出 token 都对全词表（3B 模型 151936
+/// 个候选）做一次"解码为 UTF-8 + 栈状态转移模拟"，实测把 3B 模型单次
+/// generate() 耗时从 002 基线 628ms 推高到约 2000ms（纯文本 prompt，无
+/// Lattice 标注）。
+///
+/// `ForbiddenTokenMask` 把这一步降级为"模型加载完成后一次性预扫描 + 采样循环
+/// 内 O(1) 位图查询"：给定 vocab，仅在构造/加载阶段遍历全部 token id，复刻
+/// llama.cpp `decode_utf8()`/`llama_grammar_match_partial_char()`
+/// （llama-grammar.cpp）对"单 token 从空状态独立解析"情形下的判定逻辑，结果
+/// 缓存为按 token id 索引的 `std::vector<bool>`。采样循环不再调用
+/// `llama_sampler_apply(grammar, …)`，只需 `isForbidden(id)` 查表即可获得与
+/// 原语法引擎完全等价的判定——`anyLegal` 梗阻检测（FR-008）与自然终止逻辑均
+/// 不受影响。
+///
+/// 实现说明（fix.md "Deviations from Assessment" 记录了完整的踩坑过程）：
+/// 最初按"token 解码后的字符串是否直接包含 ⟦/⟧/|"这一朴素标准实现，构建后
+/// 发现生成质量明显劣化（偶发输出垃圾字节、无法正常以 EOG 终止）。逐行比对
+/// llama-grammar.cpp 后定位根因：原语法引擎按**字节**而非按 token 扫描，对
+/// 于 BPE 分词产生的"单字节/不完整多字节 UTF-8 前缀"token（常见于稀有字节
+/// 回退编码），即使其解码出的字符串不直接包含被禁字符，只要
+/// ①该前缀本身就是无效 UTF-8 lead byte（含 0xC0/0xC1 过长编码特判），或
+/// ②该前缀未消费完、但其所有可能的补全区间恰好覆盖 ⟦/⟧ 两个码点，
+/// 原语法引擎也会保守地判定该 token 非法（防止模型靠跨 token 拼接字节的方
+/// 式绕过禁用符号）。本类的 `isForbidden()` 判定逻辑据此扩展，已用独立诊断
+/// 探针对 3B/0.5B 两套词表共 151936×2 个 token 做过逐一穷举比对，与
+/// `llama_sampler_apply(grammar, …)` 的判定结果 100% 一致（0 处不一致）。
+///
+/// 草稿模型与目标模型（004 投机解码）是两套独立词表，`build()` 需对两者分别
+/// 调用一次，结果不可共用（同一 token id 在两个词表中可能对应完全不同的字
+/// 符串）。
+///
+/// 若未来某个新特性需要真正有状态的语法约束（例如强制输出合法 JSON），静态
+/// 黑名单方案不适用——届时应在调用点旁另行引入 `llama_sampler_init_grammar`
+/// 等通用引擎，不影响这里的查询接口，本类本身不需要为此预留可扩展性。
+class ForbiddenTokenMask {
+ public:
+  /// 一次性扫描 `vocab` 的全部 token，返回按 token id 索引的禁用位图。调用方
+  /// MUST 仅在模型加载完成后调用一次并长期缓存结果（见 `LlmEngine::
+  /// m_forbiddenTokenMask`/`m_draftForbiddenTokenMask`），不得放入 `generate()`
+  /// 的采样循环或每次 `generate()` 调用路径——否则会重新引入本 bug 试图消除
+  /// 的"每 token/每次调用全词表扫描"开销。
+  static std::vector<bool> build(const llama_vocab *vocab) {
+    const int32_t nVocab = llama_vocab_n_tokens(vocab);
+    std::vector<bool> mask(static_cast<std::size_t>(std::max(nVocab, 0)), false);
+    char buf[256];
+    for (int32_t t = 0; t < nVocab; ++t) {
+      // 与原语法引擎一致：EOG token 永远合法（kOutputGrammar 的 `root` 定义
+      // 允许零个字符，对应 `allow_eog` 在该语法下恒为 true），不受后续字节
+      // 级判定影响。
+      if (llama_vocab_is_eog(vocab, t)) {
+        continue;
+      }
+      const int32_t written = llama_token_to_piece(vocab, t, buf, sizeof(buf), /*lstrip=*/0, /*special=*/true);
+      // 空字符串/以 NUL 开头：与 llama_grammar_apply_impl 的
+      // `piece.empty() || piece[0] == 0` 分支一致，直接判非法。
+      if (written <= 0 || buf[0] == '\0') {
+        mask[static_cast<std::size_t>(t)] = true;
+        continue;
+      }
+      const std::string piece(buf, static_cast<std::size_t>(written));
+      if (isForbiddenByUtf8Structure(piece)) {
+        mask[static_cast<std::size_t>(t)] = true;
+      }
+    }
+    return mask;
+  }
+
+  /// O(1) 查询：token id 是否命中禁用黑名单。下标越界（理论上不应发生，因为
+  /// `mask` 与对应 vocab 的 `llama_vocab_n_tokens()` 等长）保守判定为"未禁
+  /// 用"，调用方仍需通过 logits 数组本身的合法范围来保证不会越界访问。
+  static bool isForbidden(const std::vector<bool> &mask, llama_token id) {
+    const auto idx = static_cast<std::size_t>(id);
+    return idx < mask.size() && mask[idx];
+  }
+
+ private:
+  /// 复刻 llama-grammar.cpp `decode_utf8(src, partial_start={0,0})` 从干净状
+  /// 态逐字节消费 + `llama_grammar_match_partial_char()` 的保守判定：
+  /// - 完整解码出 ⟦（U+27E6）/⟧（U+27E7）/|（U+007C）中任一码点 → 非法；
+  /// - 出现无效 lead byte（含 0xC0/0xC1 过长编码特判）→ 非法；
+  /// - 结尾处残留未消费完的多字节前缀，其所有可能补全区间覆盖 ⟦/⟧ 任一码点
+  ///   → 非法（原语法引擎为防止跨 token 拼接禁用符号而采取的保守策略）；
+  /// - 其余情况 → 合法。
+  static bool isForbiddenByUtf8Structure(const std::string &piece) {
+    static constexpr int kLookup[16] = {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 3, 4};
+    std::size_t i = 0;
+    const std::size_t n = piece.size();
+    while (i < n) {
+      const unsigned char first = static_cast<unsigned char>(piece[i]);
+      const int highbits = first >> 4;
+      int nRemain = kLookup[highbits] - 1;
+      if (nRemain < 0) {
+        return true;  // 裸露延续字节（0x80-0xBF）等无效 lead byte
+      }
+      const unsigned int mask = (1u << (7 - nRemain)) - 1u;
+      uint32_t value = first & mask;
+      ++i;
+      while (i < n && nRemain > 0) {
+        value = (value << 6) + (static_cast<unsigned char>(piece[i]) & 0x3Fu);
+        ++i;
+        --nRemain;
+      }
+      if (nRemain == 0) {
+        if (value == kCodepointLeftBracket || value == kCodepointRightBracket || value == kCodepointPipe) {
+          return true;  // 完整解码出被禁码点
+        }
+        continue;  // 合法完整字符，继续解析下一个
+      }
+      // 结尾处尚有未消费完的多字节前缀：复刻 match_partial_char 的判定。
+      if (nRemain == 1 && value < 2) {
+        return true;  // 0xC0/0xC1 式过长编码 lead byte
+      }
+      uint32_t low = value << (nRemain * 6);
+      const uint32_t high = low | ((1u << (nRemain * 6)) - 1u);
+      if (low == 0) {
+        if (nRemain == 2) {
+          low = 1u << 11;
+        } else if (nRemain == 3) {
+          low = 1u << 16;
+        }
+      }
+      if ((low <= kCodepointLeftBracket && kCodepointLeftBracket <= high) ||
+          (low <= kCodepointRightBracket && kCodepointRightBracket <= high)) {
+        return true;  // 未完成前缀仍可能补全为 ⟦/⟧，保守判为禁用
+      }
+      break;  // 未命中禁用范围，结尾不完整序列按"仍可能合法"处理
+    }
+    return false;
+  }
+
+  static constexpr uint32_t kCodepointLeftBracket = 0x27E6;   // ⟦
+  static constexpr uint32_t kCodepointRightBracket = 0x27E7;  // ⟧
+  static constexpr uint32_t kCodepointPipe = 0x7C;            // |
+};
+
 }  // namespace
 #endif
 
@@ -85,6 +227,11 @@ void LlmEngine::tryLoadModel() {
   }
   m_modelAvailable = true;
 
+  // gbnf-grammar-sampling-overhead 修复：模型加载完成、词表确定后立即一次性
+  // 预计算目标模型的禁用 token 位图（而非每次 generate() 或每个输出 token 内
+  // 重新计算），供后续所有 generate() 调用的采样循环 O(1) 查表复用。
+  m_forbiddenTokenMask = ForbiddenTokenMask::build(llama_model_get_vocab(m_model));
+
   // 004-speculative-decoding（T007，contracts/llm-engine-speculative-internal-
   // contract.md 二.1/二.4，FR-006）：目标模型加载成功后，若指定了草稿模型路径，
   // 尝试额外加载草稿模型；任一环节失败均仅记录诊断日志、静默降级，MUST NOT
@@ -119,6 +266,10 @@ void LlmEngine::tryLoadModel() {
             m_draftModel = nullptr;
           } else {
             m_draftModelAvailable = true;
+            // 草稿模型词表与目标模型词表是两套独立词表（004 投机解码），禁用
+            // 位图不可共用，需单独预计算、单独缓存（见 LlmEngine.h
+            // m_draftForbiddenTokenMask 注释）。
+            m_draftForbiddenTokenMask = ForbiddenTokenMask::build(llama_model_get_vocab(m_draftModel));
             spdlog::info("LlmEngine: 草稿模型加载成功（{}），投机解码已启用", m_draftModelPath.string());
           }
         }
@@ -207,20 +358,25 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
     return {};
   }
 
-  // GBNF 输出语法约束（FR-005～FR-009，data-model.md 三 Output Grammar Rule，
-  // research.md §2/§3 方案 B，contracts/llm-engine-grammar-internal-
-  // contract.md）：仅排除 ⟦（U+27E6）/⟧（U+27E7）/|（U+007C）三个 Lattice 内部
-  // 标注符号，"最宽边界"——以单一负向字符类表达，不收窄其余任意 Unicode 字符
-  // （汉字/中文标点/数字/字母/全半角标点/emoji 均合法）。`root` 定义为"零个或
-  // 多个合法字符"（Kleene 星号），使语法状态机在任意生成位置都处于"可接受结
-  // 束"状态，不与既有 `llama_vocab_is_eog()` 自然终止逻辑冲突。
-  static constexpr char kOutputGrammar[] = "root ::= safe-char*\nsafe-char ::= [^\\u27E6\\u27E7\\x7C]\n";
-  static constexpr char kOutputGrammarRoot[] = "root";
+  // 输出语法约束（FR-005～FR-009，data-model.md 三 Output Grammar Rule）：仅
+  // 排除 ⟦（U+27E6）/⟧（U+27E7）/|（U+007C）三个 Lattice 内部标注符号，"最宽
+  // 边界"——不收窄其余任意 Unicode 字符（汉字/中文标点/数字/字母/全半角标
+  // 点/emoji 均合法）。
+  //
+  // gbnf-grammar-sampling-overhead 修复：原实现用一条等价于
+  // `root ::= safe-char*` / `safe-char ::= [^\u27E6\u27E7\x7C]` 的 GBNF 语法
+  // 字符串接入 `llama_sampler_init_grammar` 通用语法引擎，但该规则本身无递
+  // 归、无跨步骤状态依赖，用通用引擎实现属于性能反模式（实测 3B 模型单次
+  // generate() 从 002 基线 628ms 推高到约 2000ms，见 assessment.md）。现改为
+  // 直接查询 `m_forbiddenTokenMask`/`m_draftForbiddenTokenMask`（模型加载时
+  // 由 `ForbiddenTokenMask::build()` 一次性预计算，见上方匿名命名空间），采
+  // 样循环内 O(1) 查表即可获得等价的屏蔽效果，不再需要 GBNF 语法字符串/
+  // grammar 采样器。若未来需要真正有状态的语法约束，可在此处另行引入
+  // `llama_sampler_init_grammar`，不影响其余采样流程。
 
   // 放弃现有 llama_sampler_chain_init/llama_sampler_chain_add 一体式链条封装，
-  // 改为手动分步调用：语法采样器单独 apply 之后、temp/dist 采样器 apply 之
-  // 前，显式检查候选集合是否已全部被语法掩码为 -inf（"语法梗阻"，FR-008），
-  // 链式封装无法在这两步之间插入该检查（research.md §3 方案 A 否决理由）。
+  // 改为手动分步调用：黑名单掩码应用之后、temp/dist 采样器 apply 之前，显式
+  // 检查候选集合是否已全部被掩码为 -inf（"语法梗阻"，FR-008）。
   std::string result;
   constexpr int kMaxOutputTokens = 256;  // MVP 固定上限，避免单次生成无界耗时
 
@@ -253,8 +409,7 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
   }
 
   if (!useSpeculative) {
-    // ===== 既有单模型自回归采样循环（003 既有实现，原样不变）=====
-    llama_sampler *grammar = llama_sampler_init_grammar(vocab, kOutputGrammar, kOutputGrammarRoot);
+    // ===== 既有单模型自回归采样循环 =====
     llama_sampler *temp = llama_sampler_init_temp(0.3f);
     llama_sampler *dist = llama_sampler_init_dist(/*seed=*/0);
 
@@ -263,11 +418,12 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       const int32_t nVocab = llama_vocab_n_tokens(vocab);
       std::vector<llama_token_data> candidates(static_cast<std::size_t>(nVocab));
       for (int32_t t = 0; t < nVocab; ++t) {
-        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logits[t], 0.0f};
+        // 静态禁用黑名单查表（O(1)），替代原 llama_sampler_apply(grammar, …)：
+        // 命中 ⟦/⟧/| 的 token 直接置 -inf，其余 token 的 logit 原样保留。
+        const float logit = ForbiddenTokenMask::isForbidden(m_forbiddenTokenMask, t) ? -INFINITY : logits[t];
+        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logit, 0.0f};
       }
       llama_token_data_array cur_p{candidates.data(), candidates.size(), -1, false};
-
-      llama_sampler_apply(grammar, &cur_p);  // 语法掩码：非法 token 的 logit 被置为 -inf
 
       const bool anyLegal = std::any_of(candidates.begin(), candidates.end(),
                                          [](const llama_token_data &d) { return d.logit > -INFINITY; });
@@ -284,10 +440,6 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
         break;  // 既有自然终止逻辑不变，与梗阻提前终止是两条彼此独立的循环退出路径
       }
 
-      // 推进语法采样器内部解析堆栈状态：不可省略，否则下一轮 apply() 会基于过期
-      // 堆栈状态误判合法性（research.md §3）。
-      llama_sampler_accept(grammar, nextToken);
-
       char buf[256] = {0};
       const int32_t written = llama_token_to_piece(vocab, nextToken, buf, sizeof(buf), 0, true);
       if (written > 0) {
@@ -301,21 +453,19 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
     }
     llama_sampler_free(temp);
     llama_sampler_free(dist);
-    llama_sampler_free(grammar);
     return QString::fromStdString(result);
   }
 
-  // ===== T010：投机解码分支（research.md §2 四步循环 + §6 GBNF 双侧约束同步 +
-  // §7 固定窗口大小）=====
+  // ===== T010：投机解码分支（research.md §2 四步循环 + §7 固定窗口大小）=====
   //
-  // 目标/草稿两侧各自独立的语法采样器实例（research.md §6：两侧状态需随"最终
-  // 采纳的 token 序列"同步前进，而非各自独立前进）。
-  llama_sampler *draftGrammar = llama_sampler_init_grammar(draftVocab, kOutputGrammar, kOutputGrammarRoot);
+  // 目标/草稿两侧分别使用各自预计算好的禁用位图（m_forbiddenTokenMask /
+  // m_draftForbiddenTokenMask，两套独立词表不可共用同一份黑名单），不再需要
+  // 为每一侧单独维护语法采样器实例/状态。
   llama_sampler *draftTemp = llama_sampler_init_temp(0.3f);
   llama_sampler *draftDist = llama_sampler_init_dist(/*seed=*/0);
-  llama_sampler *targetGrammar = llama_sampler_init_grammar(vocab, kOutputGrammar, kOutputGrammarRoot);
   llama_sampler *targetTemp = llama_sampler_init_temp(0.3f);
   llama_sampler *targetDist = llama_sampler_init_dist(/*seed=*/0);
+
 
   llama_memory_t targetMem = llama_get_memory(m_ctx);
   llama_memory_t draftMem = llama_get_memory(m_draftCtx);
@@ -346,10 +496,11 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       const float *draftLogits = llama_get_logits_ith(m_draftCtx, -1);
       std::vector<llama_token_data> draftCandArr(static_cast<std::size_t>(nVocabDraft));
       for (int32_t t = 0; t < nVocabDraft; ++t) {
-        draftCandArr[static_cast<std::size_t>(t)] = llama_token_data{t, draftLogits[t], 0.0f};
+        // 草稿模型侧使用其自身词表预计算的禁用位图（两套词表不可共用）。
+        const float logit = ForbiddenTokenMask::isForbidden(m_draftForbiddenTokenMask, t) ? -INFINITY : draftLogits[t];
+        draftCandArr[static_cast<std::size_t>(t)] = llama_token_data{t, logit, 0.0f};
       }
       llama_token_data_array draftCurP{draftCandArr.data(), draftCandArr.size(), -1, false};
-      llama_sampler_apply(draftGrammar, &draftCurP);
       const bool draftAnyLegal = std::any_of(draftCandArr.begin(), draftCandArr.end(),
                                               [](const llama_token_data &d) { return d.logit > -INFINITY; });
       if (!draftAnyLegal) {
@@ -362,7 +513,6 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
         break;  // 草稿模型自身预测到结束：本轮候选到此为止，交由目标模型验证已累积部分
       }
       draftCandidates.push_back(draftToken);
-      llama_sampler_accept(draftGrammar, draftToken);
       const llama_pos nextDraftPos = llama_memory_seq_pos_max(draftMem, 0) + 1;
       llama_batch draftNextBatch = makeSingleTokenBatch(draftToken, nextDraftPos);
       const int32_t draftRc = llama_decode(m_draftCtx, draftNextBatch);
@@ -381,10 +531,10 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       const float *logits = llama_get_logits_ith(m_ctx, -1);
       std::vector<llama_token_data> candidates(static_cast<std::size_t>(nVocabTarget));
       for (int32_t t = 0; t < nVocabTarget; ++t) {
-        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logits[t], 0.0f};
+        const float logit = ForbiddenTokenMask::isForbidden(m_forbiddenTokenMask, t) ? -INFINITY : logits[t];
+        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logit, 0.0f};
       }
       llama_token_data_array cur_p{candidates.data(), candidates.size(), -1, false};
-      llama_sampler_apply(targetGrammar, &cur_p);
       const bool anyLegal = std::any_of(candidates.begin(), candidates.end(),
                                          [](const llama_token_data &d) { return d.logit > -INFINITY; });
       if (!anyLegal) {
@@ -398,10 +548,6 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
         stoppedByEog = true;
         break;
       }
-      // 双侧语法采样器状态同步（research.md §6）：该 token 最终被采纳，两侧
-      // 均需 accept 一次。
-      llama_sampler_accept(targetGrammar, finalToken);
-      llama_sampler_accept(draftGrammar, finalToken);
 
       char buf[256] = {0};
       const int32_t written = llama_token_to_piece(vocab, finalToken, buf, sizeof(buf), 0, true);
@@ -450,10 +596,10 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
     auto sampleTargetChoice = [&](const float *logits, bool *outStall) -> llama_token {
       std::vector<llama_token_data> candidates(static_cast<std::size_t>(nVocabTarget));
       for (int32_t t = 0; t < nVocabTarget; ++t) {
-        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logits[t], 0.0f};
+        const float logit = ForbiddenTokenMask::isForbidden(m_forbiddenTokenMask, t) ? -INFINITY : logits[t];
+        candidates[static_cast<std::size_t>(t)] = llama_token_data{t, logit, 0.0f};
       }
       llama_token_data_array cur_p{candidates.data(), candidates.size(), -1, false};
-      llama_sampler_apply(targetGrammar, &cur_p);
       const bool anyLegal = std::any_of(candidates.begin(), candidates.end(),
                                          [](const llama_token_data &d) { return d.logit > -INFINITY; });
       if (!anyLegal) {
@@ -463,9 +609,6 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       llama_sampler_apply(targetTemp, &cur_p);
       llama_sampler_apply(targetDist, &cur_p);
       const llama_token choice = cur_p.data[static_cast<std::size_t>(cur_p.selected)].id;
-      // 无论匹配与否，目标模型在该位置的"真实"选择均 MUST 被 accept 一次
-      // （否则下一个验证位置的 apply() 会基于过期堆栈状态误判合法性）。
-      llama_sampler_accept(targetGrammar, choice);
       return choice;
     };
 
@@ -505,10 +648,8 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
         spdlog::error("LlmEngine: 投机解码验证阶段 llama_decode 致命错误（rc={}）", decodeRc);
         llama_sampler_free(draftTemp);
         llama_sampler_free(draftDist);
-        llama_sampler_free(draftGrammar);
         llama_sampler_free(targetTemp);
         llama_sampler_free(targetDist);
-        llama_sampler_free(targetGrammar);
         return QString::fromStdString(result);
       }
       if (decodeRc > 0) {
@@ -539,8 +680,8 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
       llama_batch_free(verifyBatch);
     }
 
-    // 位置 [0, j) 的草稿 token 已被验证通过，追加到结果（草稿阶段已对
-    // draftGrammar 逐一 accept 过，无需在此重复）。
+    // 位置 [0, j) 的草稿 token 已被验证通过，追加到结果（黑名单为无状态静态
+    // 查表，无需对已采纳 token 做任何"accept 推进"操作）。
     for (int i = 0; i < j && i < static_cast<int>(draftCandidates.size()); ++i) {
       const llama_token tok = draftCandidates[static_cast<std::size_t>(i)];
       char buf[256] = {0};
@@ -573,9 +714,9 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
         break;
       }
 
-      // 双侧语法采样器状态同步（research.md §6）：替换 token 此前从未被草稿
-      // 模型自身生成过，draftGrammar 需额外 accept 一次。
-      llama_sampler_accept(draftGrammar, replacementToken);
+      // 替换 token（choice0/choice 的直接采样结果）已经是从目标模型"应用禁用
+      // 位图后的候选集合"中选出的合法 token，静态黑名单无状态，无需任何
+      // accept 推进操作。
 
       char buf[256] = {0};
       const int32_t written = llama_token_to_piece(vocab, replacementToken, buf, sizeof(buf), 0, true);
@@ -610,10 +751,8 @@ QString LlmEngine::generate(const QString &normalizedInput) const {
 
   llama_sampler_free(draftTemp);
   llama_sampler_free(draftDist);
-  llama_sampler_free(draftGrammar);
   llama_sampler_free(targetTemp);
   llama_sampler_free(targetDist);
-  llama_sampler_free(targetGrammar);
   return QString::fromStdString(result);
 #else
   Q_UNUSED(normalizedInput);
