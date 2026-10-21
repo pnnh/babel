@@ -1,0 +1,29 @@
+specs/006-paste-fallback-hotkey-feedback/spec.md
+  s_6b7ba739c15562::t_d244963809e29a 103
+  s_6b7ba739c15562::t_f3e86e57f4f81b 18,21-23
+  s_6b7ba739c15562::t_4a11dcf639fb6c 62
+  s_6b7ba739c15562::t_046ba1870f08a5 77
+  s_6b7ba739c15562::t_fe221fb510f886 113
+  s_6b7ba739c15562::t_c171ed1546a23e 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "28da4aa9ea8560bb490eb072b0782f24b9bce4a5",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
