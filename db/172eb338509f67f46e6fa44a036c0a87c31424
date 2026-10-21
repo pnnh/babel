@@ -1,0 +1,24 @@
+specs/005-learning-tip-generation/tasks.md
+  s_aa1d6d26322621::t_f9d5c3cfe7a886 1-235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db172eb338509f67f46e6fa44a036c0a87c31424",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_aa1d6d26322621": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "b0bae9f0-43db-4323-b596-0152c9343c8b",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
