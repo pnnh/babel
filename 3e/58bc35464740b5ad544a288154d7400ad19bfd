@@ -1,0 +1,49 @@
+.specify/bugs/gbnf-grammar-sampling-overhead/fix.md
+  s_68998b01aaee1e::t_f984484c7be649 1-210
+.specify/bugs/gbnf-grammar-sampling-overhead/test.md
+  s_6b7ba739c15562::t_ccea8933a354fe 1-67
+babel/src/slowpath/LlmEngine.cpp
+  s_68998b01aaee1e::t_91c92790f8dd4b 361-375,378-379
+  s_68998b01aaee1e::t_18b84b527e2f00 230-234
+  s_68998b01aaee1e::t_f0eadef31c4bbf 599-600
+  s_68998b01aaee1e::t_6b3e7e0cf0f905 43-49,52-55,57-58,60-72,92-97,99-102,106,122-179
+  s_68998b01aaee1e::t_e5ab290e66cc9f 269-272
+  s_68998b01aaee1e::t_54cbaa223a99e7 683-684
+  s_68998b01aaee1e::t_fdc3facb1144c4 717-719
+  s_68998b01aaee1e::t_bf644279423c6c 499-501,534-535
+  s_68998b01aaee1e::t_d8fac2f4d9bcf3 39-42,50-51,56,59,73-91,98,103-105,107-121,180
+  s_68998b01aaee1e::t_fa8d164aa7d576 412,421-424,459,461-463
+  s_6b7ba739c15562::t_6b2f388e5a2dd1 469
+babel/src/slowpath/LlmEngine.h
+  s_68998b01aaee1e::t_189a0e47048393 5
+  s_68998b01aaee1e::t_c02a3006ae99b2 52-60,67-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e58bc35464740b5ad544a288154d7400ad19bfd",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_68998b01aaee1e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "4d782b7d-2c55-4d2f-b66a-6ba6aecb0d79",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    },
+    "s_6b7ba739c15562": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d292c189-7aa8-429a-9d1b-6d5fca31a166",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
