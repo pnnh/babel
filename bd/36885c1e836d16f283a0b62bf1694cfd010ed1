@@ -1,0 +1,40 @@
+specs/007-candidate-manual-correction/quickstart.md
+  s_bd1678cbc81c86::t_fb39f4df19bd23 1-93
+specs/007-candidate-manual-correction/plan.md
+  s_bd1678cbc81c86::t_a2efdf3d9ba68d 1-144
+specs/007-candidate-manual-correction/data-model.md
+  s_bd1678cbc81c86::t_796e029d8712e2 1-114
+specs/002-lattice-dict-model-switch/contracts/llm-prompt-annotation-contract.md
+  s_bd1678cbc81c86::t_ba34230558e1ec 49
+specs/007-candidate-manual-correction/contracts/qml-cpp-session-interface-increment.md
+  s_bd1678cbc81c86::t_7a5de69da859e7 1-54
+CLAUDE.md
+  s_bd1678cbc81c86::t_1b593a5be8e980 9
+specs/007-candidate-manual-correction/contracts/fastpath-candidate-generation-contract.md
+  s_bd1678cbc81c86::t_59c9be8eaa4b03 1-51
+specs/007-candidate-manual-correction/research.md
+  s_bd1678cbc81c86::t_fcda99f538ec64 1-318
+specs/007-candidate-manual-correction/contracts/candidate-selection-replacement-contract.md
+  s_bd1678cbc81c86::t_8e7e15d0686fde 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd36885c1e836d16f283a0b62bf1694cfd010ed1",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bd1678cbc81c86": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "e12002ff-d22c-4ca2-b548-07ff3bb6bfcf",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
