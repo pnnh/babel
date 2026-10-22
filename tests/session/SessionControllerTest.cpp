@@ -94,6 +94,29 @@ class RecordingPasteInjector : public PasteInjector {
   InjectionOutcome m_outcome;
 };
 
+/// 006-paste-fallback-hotkey-feedback（T008 [US1]，contracts/target-focus-
+/// validity-contract.md 测试契约）：仅 override isTargetFocusStillValid()
+/// 恒返回 false 的粘贴注入测试替身；attemptPaste() 保持既有默认实现之上额外
+/// 记录调用次数，用于断言"目标失效时 MUST NOT 调用 attemptPaste()"。
+class TargetFocusAlwaysInvalidPasteInjector : public PasteInjector {
+ public:
+  explicit TargetFocusAlwaysInvalidPasteInjector(int *attemptPasteCallCount) : m_attemptPasteCallCount(attemptPasteCallCount) {}
+
+  bool isTargetFocusStillValid(const babel::focus::TargetFocusContext & /*targetFocus*/) const override {
+    return false;
+  }
+
+  InjectionAttemptResult attemptPaste(const babel::focus::TargetFocusContext & /*targetFocus*/) override {
+    ++(*m_attemptPasteCallCount);
+    InjectionAttemptResult result;
+    result.outcome = InjectionOutcome::Succeeded;
+    return result;
+  }
+
+ private:
+  int *m_attemptPasteCallCount;
+};
+
 /// 构造一个已"唤起"（非 Hidden）的 SessionController，仅注入
 /// ClipboardWriter/PasteInjector 测试替身；不装配 GlobalHotkey/FastCorrector/
 /// DebounceScheduler/LlmEngine（measurement 聚焦 confirm()/cancel() 本身）。
@@ -147,6 +170,45 @@ TEST(SessionControllerTest, CancelProducesNoClipboardOrPasteAction) {
   controller->cancel();
   EXPECT_TRUE(log.empty());
   EXPECT_EQ(controller->sessionState(), FloatingSessionState::Hidden);
+}
+
+// 006-paste-fallback-hotkey-feedback（T008 [US1]，contracts/target-focus-
+// validity-contract.md 测试契约）：confirm() 在目标窗口已失效时 MUST NOT 调用
+// attemptPaste()，直接复用既有"非 Succeeded"统一降级分支。
+
+TEST(SessionControllerTest, ConfirmSkipsPasteWhenTargetFocusNoLongerValid) {
+  std::vector<std::string> clipboardLog;
+  int attemptPasteCallCount = 0;
+
+  auto controller = std::make_unique<SessionController>();
+  controller->setClipboardWriter(std::make_unique<RecordingClipboardWriter>(&clipboardLog));
+  controller->setPasteInjector(std::make_unique<TargetFocusAlwaysInvalidPasteInjector>(&attemptPasteCallCount));
+  controller->onHotkeyToggled();  // Hidden -> Invoked/ModelUnavailable
+  controller->submitKeystrokes(QStringLiteral("草稿"));
+
+  controller->confirm();
+
+  EXPECT_EQ(attemptPasteCallCount, 0);  // ① attemptPaste() 调用计数为 0
+  EXPECT_TRUE(controller->manualPasteHintVisible());  // ② manualPasteHintVisible() == true
+  // ③ 浮窗状态正常进入 Confirmed，不崩溃（非 Succeeded 分支保持可见以便用户看到提示）。
+  EXPECT_EQ(controller->sessionState(), FloatingSessionState::Confirmed);
+  // 剪贴板写入仍 MUST 已完成（既有 FR-012 行为不变）。
+  ASSERT_FALSE(clipboardLog.empty());
+  EXPECT_EQ(clipboardLog.front().rfind("clipboard:", 0), 0u);
+}
+
+TEST(SessionControllerTest, ConfirmProceedsWithPasteWhenTargetFocusStillValidDefault) {
+  // 使用默认 isTargetFocusStillValid()（恒 true）的既有测试替身模式
+  // （RecordingPasteInjector 未 override 该虚方法），验证行为与 001～005
+  // 现状完全一致（无回归）。
+  std::vector<std::string> log;
+  auto controller = buildInvokedController(&log, InjectionOutcome::Succeeded);
+  controller->confirm();
+  ASSERT_EQ(log.size(), 2u);
+  EXPECT_EQ(log[0].rfind("clipboard:", 0), 0u);
+  EXPECT_EQ(log[1], "paste");  // attemptPaste() 确实被调用
+  EXPECT_EQ(controller->sessionState(), FloatingSessionState::Hidden);
+  EXPECT_FALSE(controller->manualPasteHintVisible());
 }
 
 // T026 [US3]：switchModel()/openSettings()/closeSettings() 行为与

@@ -50,3 +50,34 @@ cd build/macos && ctest -C Debug --output-on-failure
 ## 实测记录
 
 本阶段（`/speckit.plan`）不预先编造任何具体验证结果；真实的托盘图标外观、系统通知弹出效果、以及场景一的真实窗口切换粘贴降级效果，均需在真实桌面环境（非无显示器终端沙箱）中实际运行应用才能观察，留待 `/speckit.implement` 完成后由实现者或用户记录于本节。
+
+### `/speckit.implement`（T013～T017）执行结果（如实记录，未编造）
+
+**自动化验证已完成**（可确定性验证的子集，覆盖场景一/二的核心逻辑分支）：
+
+- `tests/session/SessionControllerTest.cpp`：`ConfirmSkipsPasteWhenTargetFocusNoLongerValid`（目标失效 → 跳过
+  `attemptPaste()` → `manualPasteHintVisible() == true` → 状态正常进入 `Confirmed`，PASS）、
+  `ConfirmProceedsWithPasteWhenTargetFocusStillValidDefault`（目标恒有效 → 正常调用 `attemptPaste()`，
+  行为与 001～005 现状一致，PASS）。
+- `tests/inject/PasteInjectorTargetFocusValidityTest.cpp`：当前平台（macOS）
+  `isTargetFocusStillValid()` 对明显陈旧的 `TargetFocusContext` 返回合法布尔值、不崩溃（PASS），
+  经由基类指针重复调用结果一致（PASS）。
+- 全量回归：112/112 通过，1 项按既有设计跳过（`PasteInjectorPermissionTest`，未授予 Accessibility 权限环境下的既有已知跳过），无回归。
+
+**场景一/二（真实窗口切换粘贴行为）**：**未执行真实 GUI 人工验证**。`confirm()`/`PasteInjector` 层面的
+决策逻辑已通过上述自动化测试完全确定性覆盖（测试替身层面功能等价于场景一/二的核心断言：
+"目标失效时 MUST NOT 调用 attemptPaste()"与"目标仍有效时行为无回归"）；但本次 `/speckit.implement`
+由自动化 Agent 在终端环境中执行，若要完成真正的端到端人工验证，需要实际启动 `Babel.app`、注册
+真实全局热键、并对当前真实前台窗口执行系统级模拟粘贴按键注入——这会实际抢占本机当前桌面会话的
+全局热键绑定、并向当时真正拥有系统焦点的任意窗口投递合成按键事件，存在干扰用户当前真实桌面会话
+的风险，Agent 判断不应在未经用户在场监督的情况下执行此类系统级副作用操作。**如实标注为：待用户
+后续在真实桌面环境中亲自执行并补充确认**，不编造验证结果。
+
+**场景三/四（托盘图标/系统通知真实弹出效果）**：**未执行真实 GUI 人工验证**，原因与 tasks.md Notes
+一致——`bootstrapPlatformDefaults()` 为生产专用方法，测试 MUST NOT 调用；真实弹出效果需要实际启动
+`Babel.app` 并观察系统托盘/菜单栏与系统通知中心，同样涉及真实抢占全局热键与常驻进程/UI 的系统级
+副作用，Agent 同理未在无人工监督场景下执行。**如实标注为：待用户后续在真实桌面环境中亲自执行并
+补充确认**，不编造验证结果、未新增 mock 框架或修改架构绕过此限制。
+
+**场景五（事后复述验证，SC-005）**：**未执行**，需要真实用户访谈条件，当前环境不具备。如实标注为
+"未执行，需要用户后续补充"。

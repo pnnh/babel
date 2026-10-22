@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QSystemTrayIcon>
 #include <QVariantList>
 #include <filesystem>
 #include <memory>
@@ -264,6 +265,15 @@ class SessionController : public QObject {
   std::unique_ptr<babel::inject::PasteInjector> m_pasteInjector;
   std::unique_ptr<babel::hotkey::GlobalHotkey> m_globalHotkey;
   QTimer *m_pollTimer = nullptr;
+
+  /// 006-paste-fallback-hotkey-feedback（T009 [US2]，data-model.md 三.2，
+  /// contracts/hotkey-notice-contract.md）：常驻系统托盘图标，仅
+  /// bootstrapPlatformDefaults()（生产环境）创建；非 Q_PROPERTY（通知是系统
+  /// 级 UI，不经过浮窗/QML 渲染，无需 QML 可见状态，research.md §2）。
+  std::unique_ptr<QSystemTrayIcon> m_trayIcon;
+  /// FR-008 防重复提示守卫：同一次应用运行期内 MUST NOT 重复展示热键注册
+  /// 失败通知超过一次。
+  bool m_hotkeyFailureNoticeShown = false;
 };
 
 }  // namespace babel::session

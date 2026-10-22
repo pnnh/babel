@@ -1,8 +1,12 @@
 #include "babel/src/session/SessionController.h"
 
+#include <QApplication>
+#include <QIcon>
 #include <QMetaObject>
 #include <QPointer>
 #include <QStringList>
+#include <QStyle>
+#include <QSystemTrayIcon>
 #include <QTimer>
 #include <QVariantMap>
 #include <spdlog/spdlog.h>
@@ -218,6 +222,27 @@ void SessionController::bootstrapPlatformDefaults() {
       spdlog::info("全局热键注册成功（默认组合键）");
     } else {
       spdlog::warn("全局热键注册失败：可能与系统或其他应用已占用的快捷键冲突，浮窗将无法通过热键唤起");
+    }
+
+    // 006-paste-fallback-hotkey-feedback（T010 [US2]，FR-005/FR-006/FR-008，
+    // contracts/hotkey-notice-contract.md，research.md §2）：紧邻既有
+    // hotkeyRegistered 判断分支之后新增托盘图标创建 + 条件通知逻辑。
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+      m_trayIcon = std::make_unique<QSystemTrayIcon>();
+      m_trayIcon->setIcon(qApp->style()->standardIcon(QStyle::SP_ComputerIcon));
+      m_trayIcon->setToolTip(QStringLiteral("Babel"));
+      m_trayIcon->show();  // 常驻，不随通知消失而隐藏（用户显式决策，research.md §2）。
+
+      if (!hotkeyRegistered && !m_hotkeyFailureNoticeShown) {
+        m_trayIcon->showMessage(/*title=*/QStringLiteral("Babel"),
+                                 /*msg=*/QStringLiteral("全局热键当前不可用，可能与其他应用的快捷键冲突"),
+                                 QSystemTrayIcon::Warning);
+        m_hotkeyFailureNoticeShown = true;
+      }
+    } else {
+      // 可用性兜底（research.md §2）：返回 false 时 MUST NOT 创建图标、MUST NOT
+      // 调用 showMessage()，仅保留既有诊断日志（不崩溃、不抛异常）。
+      spdlog::warn("当前桌面环境未提供系统托盘支持，跳过托盘图标与热键失败通知创建");
     }
   } else {
     spdlog::warn("当前平台未提供全局热键实现，浮窗将无法通过热键唤起");
@@ -758,8 +783,15 @@ void SessionController::confirm() {
     m_clipboardWriter->write(m_outputPreview.content);
   }
 
+  // 006-paste-fallback-hotkey-feedback（FR-001，contracts/target-focus-
+  // validity-contract.md，data-model.md 三.1）：在调用 attemptPaste() 之前先
+  // 判断目标窗口是否仍是系统当前焦点；已失效时 MUST NOT 仍尝试模拟粘贴
+  // （FR-004 风险防范），直接复用既有"非 Succeeded"统一降级分支（不新增
+  // InjectionOutcome 枚举取值）。
+  const bool targetStillValid = !m_pasteInjector || m_pasteInjector->isTargetFocusStillValid(m_targetFocus);
+
   babel::inject::InjectionOutcome outcome = babel::inject::InjectionOutcome::OtherFailure;
-  if (m_pasteInjector) {
+  if (targetStillValid && m_pasteInjector) {
     outcome = m_pasteInjector->attemptPaste(m_targetFocus).outcome;
   }
 

@@ -67,6 +67,29 @@ class PasteInjectorX11 : public PasteInjector {
     result.outcome = InjectionOutcome::Succeeded;
     return result;
   }
+
+  /// 006-paste-fallback-hotkey-feedback（FR-001/FR-002，research.md §1 表格第
+  /// 三行）：重新调用 XGetInputFocus()，与 targetFocus.platformWindowRef 转换
+  /// 回的 Window 做整数比较；XOpenDisplay 失败或返回值不相等（含 None/
+  /// PointerRoot 等非窗口特殊值）即判定为失效。
+  bool isTargetFocusStillValid(const babel::focus::TargetFocusContext &targetFocus) const override {
+    Display *display = XOpenDisplay(nullptr);
+    if (!display) {
+      return false;
+    }
+
+    Window focused = 0;
+    int revertTo = 0;
+    XGetInputFocus(display, &focused, &revertTo);
+    XCloseDisplay(display);
+
+    if (focused == None) {
+      return false;
+    }
+
+    const Window capturedWindow = static_cast<Window>(targetFocus.platformWindowRef);
+    return focused == capturedWindow;
+  }
 };
 
 }  // namespace

@@ -2,6 +2,8 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 
+#include <cstdint>
+
 namespace babel::inject {
 namespace {
 
@@ -51,6 +53,45 @@ class PasteInjectorMac : public PasteInjector {
 
     result.outcome = InjectionOutcome::Succeeded;
     return result;
+  }
+
+  /// 006-paste-fallback-hotkey-feedback（FR-001/FR-002，research.md §1 表格第
+  /// 二行）：重新执行与 FocusContext.cpp::captureCurrentFocus() 同构的"取屏幕
+  /// 前到后排序窗口列表中第一个 layer==0 窗口的 kCGWindowOwnerPID"逻辑，与
+  /// targetFocus.platformWindowRef 转换回的 pid_t 比较；不相等（含现在找不到
+  /// 任何 layer==0 窗口）即判定为失效。
+  bool isTargetFocusStillValid(const babel::focus::TargetFocusContext &targetFocus) const override {
+    const pid_t capturedPid = static_cast<pid_t>(reinterpret_cast<intptr_t>(targetFocus.platformWindowRef));
+
+    bool found = false;
+    pid_t currentPid = 0;
+    CFArrayRef windowList = CGWindowListCopyWindowInfo(
+        kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
+    if (windowList) {
+      const CFIndex count = CFArrayGetCount(windowList);
+      for (CFIndex i = 0; i < count; ++i) {
+        const CFDictionaryRef info = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(windowList, i));
+        const CFNumberRef layerRef = static_cast<CFNumberRef>(CFDictionaryGetValue(info, kCGWindowLayer));
+        int layer = -1;
+        if (layerRef) {
+          CFNumberGetValue(layerRef, kCFNumberIntType, &layer);
+        }
+        if (layer != 0) {
+          continue;
+        }
+        const CFNumberRef pidRef = static_cast<CFNumberRef>(CFDictionaryGetValue(info, kCGWindowOwnerPID));
+        if (pidRef) {
+          int pid = 0;
+          CFNumberGetValue(pidRef, kCFNumberIntType, &pid);
+          currentPid = static_cast<pid_t>(pid);
+          found = true;
+        }
+        break;
+      }
+      CFRelease(windowList);
+    }
+
+    return found && currentPid == capturedPid;
   }
 };
 

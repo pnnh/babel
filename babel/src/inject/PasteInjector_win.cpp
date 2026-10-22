@@ -35,6 +35,16 @@ class PasteInjectorWin : public PasteInjector {
     result.outcome = (sent == ARRAYSIZE(inputs)) ? InjectionOutcome::Succeeded : InjectionOutcome::OtherFailure;
     return result;
   }
+
+  /// 006-paste-fallback-hotkey-feedback（FR-001/FR-002，research.md §1 表格第
+  /// 一行）：重新调用 GetForegroundWindow()，与 targetFocus.platformWindowRef
+  /// 转换回的 HWND 做指针比较；不相等（含现在返回 NULL，如前台窗口已关闭）
+  /// 即判定为失效。
+  bool isTargetFocusStillValid(const babel::focus::TargetFocusContext &targetFocus) const override {
+    const HWND currentForeground = GetForegroundWindow();
+    const HWND capturedForeground = static_cast<HWND>(targetFocus.platformWindowRef);
+    return currentForeground != nullptr && currentForeground == capturedForeground;
+  }
 };
 
 }  // namespace
