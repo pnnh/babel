@@ -1,0 +1,41 @@
+specs/007-candidate-manual-correction/spec.md
+  s_c0e274655394e4::t_f04235ac1a4e00 191
+  s_c0e274655394e4::t_fc002473785d91 154
+  s_c0e274655394e4::t_921a1bf97c2721 148
+  s_c0e274655394e4::t_e28fb075c0df0a 62,64
+  s_c0e274655394e4::t_14a1c69412c80b 172-173
+  s_c0e274655394e4::t_707ab473e88622 61
+  s_c0e274655394e4::t_ac167cfc4720b6 44-57,65
+  s_c0e274655394e4::t_fe13007b67b3c0 149-152
+  s_c0e274655394e4::t_ce6043954a98bb 34
+  s_c0e274655394e4::t_1306f7ea020153 122-123
+  s_c0e274655394e4::t_3e65bb44f5674e 182
+  s_c0e274655394e4::t_c2c3f40d48a1ce 179
+  s_c0e274655394e4::t_5f628a83380ab2 153
+  s_c0e274655394e4::t_53391448f1a488 133-136
+  s_c0e274655394e4::t_3dcbdc4ddc6db9 161
+  s_c0e274655394e4::t_8171e7cc43bcfd 58-60,63
+specs/007-candidate-manual-correction/checklists/requirements.md
+  s_c0e274655394e4::t_b15d12c0d68893 42-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d2b208a463963b01471561ecaaaad1c0577f6bc",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_c0e274655394e4": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "94532ad8-c0c6-4af0-a041-cb1a422fb23b",
+        "model": "unknown"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
