@@ -1,0 +1,40 @@
+babel/src/ipc/UnixDomainSocketServer.cpp
+  s_9aefe4a2760245::t_963e772bee0a8b 1-198
+babel/src/slowpath/ModelPaths.cpp
+  s_9aefe4a2760245::t_e2511e8fe1da71 3,6-7,11-32,34-54,63-86
+specs/008-macos-imk-stub-ipc/contracts/ipc-protocol-contract.md
+  s_9aefe4a2760245::t_2967c319620193 1-35
+specs/008-macos-imk-stub-ipc/contracts/logging-observability-contract.md
+  s_9aefe4a2760245::t_6e805f4ff69bf6 1-37
+specs/008-macos-imk-stub-ipc/contracts/model-path-resolution-contract.md
+  s_9aefe4a2760245::t_c5027304327751 1-29
+specs/008-macos-imk-stub-ipc/data-model.md
+  s_9aefe4a2760245::t_f1719e0e66940e 1-110
+specs/008-macos-imk-stub-ipc/plan.md
+  s_9aefe4a2760245::t_c32c4c0f2c0eff 1-131
+specs/008-macos-imk-stub-ipc/quickstart.md
+  s_9aefe4a2760245::t_15c68d9f1d3482 1-73
+specs/008-macos-imk-stub-ipc/research.md
+  s_9aefe4a2760245::t_5720f9998cb9d2 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dbb4d5dcdb7a2b4d371c29d348fcbc36cb8ea3de",
+  "prompts": {},
+  "humans": {
+    "h_6465a203f88bd5": {
+      "author": "larry <xspanni@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9aefe4a2760245": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "48d90204-caa4-4c1c-8d56-1c633be7693d",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "larry <xspanni@gmail.com>"
+    }
+  }
+}
