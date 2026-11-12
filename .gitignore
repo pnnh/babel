@@ -77,3 +77,5 @@ windows/CppWinRTProjection/nuget/
 
 # 临时文件目录（含来源/许可未确认的素材，不应提交，见 bug english-word-pinyin-misdetection）
 /temp/
+
+**/__pycache__/

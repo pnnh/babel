@@ -1,4 +1,3 @@
- 
 #include <QDebug>
 #include <QQmlDebuggingEnabler>
 #include <QtQuick>
@@ -14,16 +13,13 @@
 #include <thread>
 
 #include "babel/src/fastpath/DictionaryPaths.h"
+#include "babel/src/ipc/UnixDomainSocketServer.h"
+#include "babel/src/logging/DaemonLogger.h"
 #include "babel/src/session/SessionController.h"
 
 namespace {
 
-/// 002-lattice-dict-model-switch（T010）：首次启动时，若约定词库目录
-/// （`DictionaryPaths::conventionalDictionaryDirectory()`）下不存在任何
-/// `.dict.yaml` 文件，则从随包内嵌资源（T001/T002，`babel/content/dictionaries/`）
-/// 复制一份初始副本到该目录，确保 FR-001"随包分发"对用户可见、FR-004"纯约定
-/// 目录"内容包含官方词库作为起点。目录下已存在词库文件时不覆盖（尊重用户自行
-/// 替换/扩充的内容）。
+/// 首次启动时若约定词库目录下不存在任何 .dict.yaml 文件，则从随包内嵌资源复制初始副本
 void deployBundledDictionariesIfNeeded() {
   const std::filesystem::path destDir = babel::fastpath::DictionaryPaths::conventionalDictionaryDirectory();
 
@@ -54,8 +50,6 @@ void deployBundledDictionariesIfNeeded() {
     return;
   }
 
-  // 与 babel/CMakeLists.txt T002 收录的 content/dictionaries/* 一一对应
-  // （qt_add_qml_module URI "quick" -> 资源前缀 ":/qt/qml/quick/"）。
   static constexpr const char *kBundledFiles[] = {
       "base.dict.yaml",
       "ext.dict.yaml",
@@ -71,7 +65,7 @@ void deployBundledDictionariesIfNeeded() {
       continue;
     }
     const std::filesystem::path destPath = destDir / fileName;
-    QFile::remove(QString::fromStdString(destPath.string()));  // QFile::copy 要求目标路径不存在
+    QFile::remove(QString::fromStdString(destPath.string()));
     if (!src.copy(QString::fromStdString(destPath.string()))) {
       spdlog::warn("main: 复制内嵌词库资源到约定目录失败 {} -> {}", fileName, destPath.string());
       continue;
@@ -81,17 +75,7 @@ void deployBundledDictionariesIfNeeded() {
   spdlog::info("main: 已将 {} 个随包词库资产文件首次部署到约定目录 {}", copiedCount, destDir.string());
 }
 
-/// bugfix: english-word-pinyin-misdetection —— 独立部署随包高频英文常用词表
-/// （`babel/content/dictionaries/common-english-words.txt`，来源见
-/// `babel/src/fastpath/EnglishWordList.h` 头部注释）到约定词库目录，供
-/// `SessionController::bootstrapPlatformDefaults()` 加载后传入 `FastCorrector`
-/// 用于拦截合法英文常用词（候选方向 1）。
-///
-/// 与 `deployBundledDictionariesIfNeeded()` 刻意分离为独立函数、独立判断条件
-/// （仅检查该文件自身是否已存在，不受 `.dict.yaml` 文件存在性影响）：已在本次
-/// 修复之前运行过 Babel 的用户，其约定目录下已存在 `.dict.yaml` 文件，会导致
-/// `deployBundledDictionariesIfNeeded()` 整体跳过部署，若词表部署逻辑与其耦合，
-/// 老用户将永远不会获得词表文件、本缺陷修复对其不生效。
+/// 独立部署随包高频英文常用词表
 void deployBundledCommonEnglishWordsIfNeeded() {
   const std::filesystem::path destDir = babel::fastpath::DictionaryPaths::conventionalDictionaryDirectory();
   const std::filesystem::path destPath = babel::fastpath::DictionaryPaths::conventionalCommonEnglishWordsFilePath();
@@ -113,7 +97,7 @@ void deployBundledCommonEnglishWordsIfNeeded() {
     spdlog::warn("main: 内嵌高频英文常用词表资源缺失，跳过部署");
     return;
   }
-  QFile::remove(QString::fromStdString(destPath.string()));  // QFile::copy 要求目标路径不存在
+  QFile::remove(QString::fromStdString(destPath.string()));
   if (!src.copy(QString::fromStdString(destPath.string()))) {
     spdlog::warn("main: 复制内嵌高频英文常用词表资源到约定目录失败 -> {}", destPath.string());
     return;
@@ -123,29 +107,44 @@ void deployBundledCommonEnglishWordsIfNeeded() {
 
 }  // namespace
 
-int main(int argc, char *argv[]) { 
-  std::cout << "current path: " << std::filesystem::current_path() << std::endl;
- 
+int main(int argc, char *argv[]) {
+  bool isDaemon = false;
+  for (int i = 1; i < argc; ++i) {
+    if (std::string(argv[i]) == "--daemon") {
+      isDaemon = true;
+      break;
+    }
+  }
 
-#ifndef NDEBUG
-  spdlog::set_level(spdlog::level::info);
-#endif
+  babel::logging::DaemonLogger::initialize();
 
   QApplication app(argc, argv);
-  app.setApplicationDisplayName(
-    QStringLiteral("This example is powered by qmltc!"));
+  app.setApplicationDisplayName(QStringLiteral("Babel"));
 
   deployBundledDictionariesIfNeeded();
   deployBundledCommonEnglishWordsIfNeeded();
 
-  // 浮窗转换器会话控制器（001-floating-ime-converter，T014）：声明顺序早于
-  // engine，确保其析构晚于 engine（先析构 QML 引擎，再析构被其引用的单例实例）。
+  if (isDaemon) {
+    spdlog::info("main: 运行模式: 守护进程 (Daemon Mode)");
+    babel::session::SessionController sessionController;
+    sessionController.bootstrapPlatformDefaults();
+
+    auto server = std::make_unique<babel::ipc::UnixDomainSocketServer>(nullptr, &app);
+    if (!server->start()) {
+      spdlog::error("main: 启动 Unix Domain Socket 服务失败");
+      return -1;
+    }
+    return app.exec();
+  }
+
+  // Standalone 模式：启动现有 Qt QML 浮窗界面
+  spdlog::info("main: 运行模式: 独立浮窗 (Standalone Mode)");
   babel::session::SessionController sessionController;
   sessionController.bootstrapPlatformDefaults();
 
   QQmlApplicationEngine engine;
   qmlRegisterSingletonInstance<babel::session::SessionController>("quick", 1, 0, "SessionController",
-                                                                    &sessionController);
+                                                                  &sessionController);
   engine.loadFromModule("quick", "Main");
 
   const auto &rootObjects = engine.rootObjects();
@@ -153,7 +152,6 @@ int main(int argc, char *argv[]) {
     qWarning() << "No root objects loaded!";
     return -1;
   }
-
 
   return app.exec();
 }

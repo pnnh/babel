@@ -32,8 +32,8 @@ target_include_directories(babel_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
-target_link_libraries(babel_core PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets)
+find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
+target_link_libraries(babel_core PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network)
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 target_link_libraries(babel_core PUBLIC unofficial::sqlite3::sqlite3)

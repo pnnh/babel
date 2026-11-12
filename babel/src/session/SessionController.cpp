@@ -181,7 +181,7 @@ void SessionController::bootstrapPlatformDefaults() {
   m_fastCorrector = std::make_unique<babel::fastpath::FastCorrector>(loadProductionDictionaryEntries(),
                                                                        loadProductionCommonEnglishWords());
 
-  const auto defaultModelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const auto defaultModelPath = babel::slowpath::ModelPaths::resolveModelFilePath();
   // 004-speculative-decoding（T013，contracts/llm-engine-speculative-internal-
   // contract.md 四）：默认（低配）档位查表得到草稿模型路径（恒为空路径，
   // FR-005/FR-009），一并传给 LlmEngine 构造函数。
@@ -486,7 +486,7 @@ void SessionController::switchModel(const QString &filePath) {
   // 的模型路径（按时间倒序尝试），最终追加低配默认模型兜底。
   std::vector<std::filesystem::path> fallbackCandidates(m_modelRuntimeState.fallbackHistory.rbegin(),
                                                           m_modelRuntimeState.fallbackHistory.rend());
-  const auto defaultModelPath = babel::slowpath::ModelPaths::conventionalModelFilePath();
+  const auto defaultModelPath = babel::slowpath::ModelPaths::resolveModelFilePath();
   if (std::find(fallbackCandidates.begin(), fallbackCandidates.end(), defaultModelPath) ==
       fallbackCandidates.end()) {
     fallbackCandidates.push_back(defaultModelPath);

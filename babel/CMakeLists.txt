@@ -11,6 +11,7 @@ find_package(
         Widgets
         ShaderTools
         QuickDialogs2
+        Network
         REQUIRED)
 
 set(CMAKE_AUTOUIC ON)
@@ -36,7 +37,8 @@ target_link_libraries(
         Qt6::Gui
         Qt6::QuickControls2
         Qt6::Widgets
-        Qt6::QuickDialogs2)
+        Qt6::QuickDialogs2
+        Qt6::Network)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/content/sources)
