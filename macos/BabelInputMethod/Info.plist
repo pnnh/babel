@@ -5,9 +5,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hans</string>
 	<key>CFBundleExecutable</key>
-	<string>BabelInputMethod</string>
+	<string>Babel</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.babel.inputmethod</string>
+	<string>com.babel.inputmethod.Babel</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -16,48 +16,47 @@
 	<string>Babel</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>LSBackgroundOnly</key>
-	<false/>
+	<true/>
+	<key>LSHasLocalizedDisplayName</key>
+	<true/>
 	<key>TICapsLockLanguageSwitchCapable</key>
 	<true/>
 	<key>InputMethodConnectionName</key>
-	<string>Babel_1_Connection_Name</string>
+	<string>com.babel.inputmethod.Babel_Connection</string>
 	<key>InputMethodServerControllerClass</key>
 	<string>BabelInputController</string>
 	<key>InputMethodServerDelegateClass</key>
 	<string>BabelInputController</string>
-	<key>InputMethodServerFilterStyles</key>
-	<dict>
-		<key>All</key>
-		<string>NO</string>
-	</dict>
 	<key>tsInputMethodCharacterRepertoireKey</key>
 	<array>
 		<string>Latn</string>
 		<string>Hans</string>
 	</array>
+	<key>tsInputMethodIconFileKey</key>
+	<string>icon.pdf</string>
 	<key>ComponentInputModeDict</key>
 	<dict>
 		<key>tsInputModeListKey</key>
 		<dict>
-			<key>com.babel.inputmethod.pinyin</key>
+			<key>com.babel.inputmethod.Babel.pinyin</key>
 			<dict>
 				<key>TISInputSourceID</key>
-				<string>com.babel.inputmethod.pinyin</string>
-				<key>TISIntendedLanguage</key>
-				<string>zh-Hans</string>
-				<key>tsInputModeScriptKey</key>
-				<string>smSimpChinese</string>
-				<key>tsInputModePrimaryInScriptKey</key>
-				<true/>
+				<string>com.babel.inputmethod.Babel.pinyin</string>
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
@@ -66,11 +65,21 @@
 				<string></string>
 				<key>tsInputModeKeyEquivalentModifiersKey</key>
 				<integer>4608</integer>
+				<key>tsInputModeMenuIconFileKey</key>
+				<string>icon.pdf</string>
+				<key>tsInputModePaletteIconFileKey</key>
+				<string>icon.pdf</string>
+				<key>tsInputModeAlternateMenuIconFileKey</key>
+				<string>icon.pdf</string>
+				<key>tsInputModePrimaryInScriptKey</key>
+				<true/>
+				<key>tsInputModeScriptKey</key>
+				<string>smSimpChinese</string>
 			</dict>
 		</dict>
 		<key>tsVisibleInputModeOrderedArrayKey</key>
 		<array>
-			<string>com.babel.inputmethod.pinyin</string>
+			<string>com.babel.inputmethod.Babel.pinyin</string>
 		</array>
 	</dict>
 	<key>NSPrincipalClass</key>

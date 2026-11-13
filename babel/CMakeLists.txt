@@ -104,3 +104,15 @@ target_link_libraries(${APP_NAME} PUBLIC babel_core)
 
 # 完成 Qt 目标配置
 qt_finalize_target(${APP_NAME})
+
+# 为方便在开发与守护进程模式下直接执行，自动创建指向 Bundle 内部二进制的软链接
+if (APPLE)
+    add_custom_command(TARGET ${APP_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "$<TARGET_FILE:${APP_NAME}>"
+            "${CMAKE_BINARY_DIR}/bin/Babel"
+        COMMENT "Creating symlink for Babel executable in bin/ directory"
+    )
+endif ()
+
